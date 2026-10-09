@@ -1,0 +1,20 @@
+# title screen, switch effect with a click, back again
+3000 click 300 300
+5000 click 300 300
+7000 mod cmd on
+7010 key N down
+7020 key N up
+7030 mod cmd off
+13000 key Space down
+13100 key Space up
+17000 key Right down
+19000 key Right up
+19500 key Space down
+19600 key Space up
+21000 key Left down
+21050 key Left up
+22000 key Left down
+24000 key Left up
+25000 key Up down
+27000 key Up up
+40000 quit

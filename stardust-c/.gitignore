@@ -1,0 +1,8 @@
+/stardust
+/stardust-orig
+*.dSYM/
+/web/stardust.js
+/web/stardust.wasm
+/web/stardust.data
+/re/.venv/
+/assets/geneva.ttf

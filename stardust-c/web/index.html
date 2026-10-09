@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stardust 1.1</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #222; color: #ddd; font: 13px/1.4 Geneva, Verdana, sans-serif; }
+  main { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; gap: 10px; padding: 12px; box-sizing: border-box; }
+  #frame { position: relative; width: min(100%, calc((100vh - 80px) * 4 / 3)); aspect-ratio: 4 / 3; background: #000; box-shadow: 0 0 0 1px #444; }
+  canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; outline: none; }
+  #start { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+           background: #000; color: #9ff; cursor: pointer; font-size: 20px; text-align: center; }
+  #start small { color: #888; font-size: 13px; }
+  p { margin: 0; color: #999; text-align: center; max-width: 640px; }
+  kbd { border: 1px solid #555; border-radius: 3px; padding: 0 4px; color: #ccc; }
+</style>
+</head>
+<body>
+<main>
+  <div id="frame">
+    <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+    <div id="start">Click to play Stardust<small id="status">loading&hellip;</small></div>
+  </div>
+  <p>Arrows or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &middot; <kbd>Space</kbd>/<kbd>Return</kbd> is magic &middot;
+     <kbd>Caps Lock</kbd> shows the menus &middot; <kbd>Ctrl</kbd> works as <kbd>&#8984;</kbd> for menu shortcuts</p>
+</main>
+<script>
+  var canvas = document.getElementById('canvas');
+  var start = document.getElementById('start');
+  var ready = false;
+  var Module = {
+    canvas: canvas,
+    capsLock: false,
+    setStatus: function (s) { document.getElementById('status').textContent = s || 'ready'; },
+    onRuntimeInitialized: function () { ready = true; Module.setStatus('ready'); },
+  };
+  function trackCaps(e) { if (e.getModifierState) Module.capsLock = e.getModifierState('CapsLock'); }
+  ['keydown', 'keyup', 'mousedown', 'mousemove'].forEach(function (t) { window.addEventListener(t, trackCaps, true); });
+  // Keep the page from scrolling and Ctrl shortcuts from reaching the browser.
+  window.addEventListener('keydown', function (e) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Backspace'].indexOf(e.key) >= 0 || e.ctrlKey) e.preventDefault();
+  });
+  start.addEventListener('click', function () {
+    if (!ready) return;
+    start.remove();
+    canvas.focus();
+    Module.callMain([]);
+  });
+</script>
+<script async src="stardust.js"></script>
+</body>
+</html>

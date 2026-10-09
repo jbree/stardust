@@ -1,0 +1,111 @@
+# About box (apple menu)
+7000 mdown 20 10
+7100 mmove 40 28
+7200 mup 40 28
+12000 shot /tmp/claude-sd/tour_about.bmp
+12100 click 300 300
+# The Plot, Simple Instructions
+15000 mdown 200 10
+15100 mmove 200 28
+15200 mup 200 28
+19000 shot /tmp/claude-sd/tour_plot.bmp
+19100 key Space down
+19200 key Space up
+21000 mdown 200 10
+21100 mmove 200 60
+21200 mup 200 60
+25000 key Space down
+25100 key Space up
+# J-I-M credits
+27000 key J down
+27010 key I down
+27020 key M down
+27100 key M up
+27110 key I up
+27120 key J up
+32000 shot /tmp/claude-sd/tour_credits.bmp
+32100 key Space down
+32200 key Space up
+# a rejected password
+34000 mod cmd on
+34010 key O down
+34020 key O up
+34030 mod cmd off
+35000 key X down
+35050 key X up
+35100 key Return down
+35150 key Return up
+37000 shot /tmp/claude-sd/tour_badpw.bmp
+38000 key Space down
+38100 key Space up
+# partial sound, slow animation, new game
+40000 mod cmd on
+40010 key 2 down
+40020 key 2 up
+40030 key 6 down
+40040 key 6 up
+40050 key N down
+40060 key N up
+40070 mod cmd off
+46000 key Space down
+46100 key Space up
+50000 key Right down
+52000 key Right up
+52500 key Up down
+54000 key Up up
+57000 shot /tmp/claude-sd/tour_wipe.bmp
+62000 key Space down
+62100 key Space up
+66000 key Left down
+66050 key Left up
+67000 key Left down
+72000 key Left up
+74000 shot /tmp/claude-sd/tour_victory1.bmp
+82000 shot /tmp/claude-sd/tour_victory2.bmp
+84000 key Space down
+84100 key Space up
+# no sound, fast, new game then abort
+87000 mod cmd on
+87010 key 3 down
+87020 key 3 up
+87030 key 4 down
+87040 key 4 up
+87050 key N down
+87060 key N up
+87070 mod cmd off
+92000 key Space down
+92100 key Space up
+94000 key Down down
+94500 key Space down
+94600 key Space up
+95000 key Down up
+96000 mod cmd on
+96010 key A down
+96020 key A up
+96030 mod cmd off
+97000 shot /tmp/claude-sd/tour_abort.bmp
+97100 key Return down
+97200 key Return up
+# full sound, normal; quit: cancel once, then OK
+99000 mod cmd on
+99010 key 1 down
+99020 key 1 up
+99030 key 5 down
+99040 key 5 up
+99050 key N down
+99060 key N up
+99070 mod cmd off
+104000 key Space down
+104100 key Space up
+106000 mod cmd on
+106010 key Q down
+106020 key Q up
+106030 mod cmd off
+107000 click 260 186
+109000 mod cmd on
+109010 key Q down
+109020 key Q up
+109030 mod cmd off
+110000 key Return down
+110100 key Return up
+124000 quit
