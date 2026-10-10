@@ -58,7 +58,7 @@ while elapsed < seconds * 1000:
     if r < 0.01:
         # Reset Level. Keypad Enter picks it: Return would also dismiss a level title.
         ev(10, 'arm')
-        press('port ', t, 'Escape'); press('port ', t + 600, 'Down'); press('port ', t + 1200, 'Keypad_Enter')
+        press('port ', t, 'Escape'); press('port ', t + 1200, 'Keypad_Enter')
         cmd(t, 'R')
         sync()
         elapsed += 8000

@@ -91,6 +91,8 @@ port 11300 key Escape down
 port 11360 key Escape up
 port 11600 key Up down
 port 11660 key Up up
+port 11720 key Up down
+port 11780 key Up up
 port 11900 key Return down
 port 11960 key Return up
 port 12500 shot /tmp/claude-sd/tour_settings.bmp
@@ -157,6 +159,8 @@ port 10700 key Escape down
 port 10760 key Escape up
 port 11000 key Up down
 port 11060 key Up up
+port 11120 key Up down
+port 11180 key Up up
 port 11300 key Return down
 port 11360 key Return up
 orig 8000 mod cmd on
@@ -178,6 +182,8 @@ sync
 8000 nolog
 port 8000 key Escape down
 port 8060 key Escape up
+port 8100 key Down down
+port 8160 key Down up
 port 8200 key Return down
 port 8260 key Return up
 port 9000 shot /tmp/claude-sd/tour_abort.bmp
@@ -227,6 +233,8 @@ port 11000 key Escape down
 port 11060 key Escape up
 port 11300 key Up down
 port 11360 key Up up
+port 11420 key Up down
+port 11480 key Up up
 port 11600 key Return down
 port 11660 key Return up
 orig 8000 mod cmd on

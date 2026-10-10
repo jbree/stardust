@@ -4,7 +4,7 @@
 
 #include "mac.h"
 
-enum { kPanelAction, kPanelChoice, kPanelHeading };
+enum { kPanelAction, kPanelChoice, kPanelHeading, kPanelDivider };
 
 typedef struct {
     const char *label;

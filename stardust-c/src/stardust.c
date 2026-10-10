@@ -43,6 +43,7 @@ typedef struct { Boolean active; int16_t x, y, frame; uint32_t time; } Fallwall;
 static Fallwall fallwalls[21];            /* -0x210 + 12*i, i = 1..20 */
 static Boolean screenShown;               /* -0x206 */
 static Boolean firstEntrance;             /* -0x205 */
+static Boolean menuPending;               /* Esc on a level screen: pause once it's shown */
 static int16_t animDelay;                 /* -0x114 */
 static int16_t walkDelay;                 /* -0x112 */
 static int16_t fallDelay;                 /* -0x110 */
@@ -87,8 +88,8 @@ enum { kLeftArrow = 0x7B, kRightArrow = 0x7C, kDownArrow = 0x7D, kUpArrow = 0x7E
        kEnter = 0x4C };
 
 /* The "click mouse or hit spacebar" wait that several screens share.
- * Esc is new; its keyDown is flushed so it doesn't then open the menu. */
-static void WaitForClickOrKey(void)
+ * Esc is new; its keyDown is flushed, and the result says it was Esc. */
+static Boolean WaitForClickOrKey(void)
 {
     KeyMap keys;
     GetKeys(keys);
@@ -97,8 +98,10 @@ static void WaitForClickOrKey(void)
         GetKeys(keys);
         FlushEvents(everyEvent, 0);
     }
-    if (KeyDown(keys, kEscape))
-        FlushEvents(everyEvent, 0);
+    if (!KeyDown(keys, kEscape))
+        return false;
+    FlushEvents(everyEvent, 0);
+    return true;
 }
 
 /* ------------------------------------------------------------------ */
@@ -559,7 +562,7 @@ static void ShowLevelTitle(int lvl, Boolean newGame)
     MoveTo(320 - StringWidth(click) / 2, 478);
     DrawString(click);
     PlaySound(newGame ? 108 : 111);
-    WaitForClickOrKey();
+    menuPending = WaitForClickOrKey();
     ForeColor(blackColor);
     BackColor(whiteColor);
 }
@@ -1536,9 +1539,16 @@ static void RestoreScreen(void)
 }
 
 /* fn4FB4: idle time. */
+static void GameMenu(void);
+
 static void Idle(const EventRecord *ev)
 {
     (void)ev;
+    if (menuPending) {
+        menuPending = false;
+        GameMenu();
+        RedrawScreen();
+    }
     if (levelDone) {
         if (heroState == kWon) {
             VictoryFlash();
@@ -1649,6 +1659,7 @@ static void TitleMenu(void)
     static const PanelItem items[] = {
         {"New Game", kPanelAction, false, false},
         {"Start At Level...", kPanelAction, false, false},
+        {"", kPanelDivider, false, false},
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
@@ -1657,12 +1668,12 @@ static void TitleMenu(void)
     PanelBegin();
     while (start == 0) {
         ShowCursorOnce();
-        switch (PanelChoose("Stardust", "Esc: close", items, 5, &sel)) {
+        switch (PanelChoose("Stardust", "Esc: close", items, 6, &sel)) {
         case 0: start = 1; break;
         case 1: start = AskForPassword(); break;
-        case 2: SettingsMenu(); break;
-        case 3: ShowInfoPicture(3); break;
-        case 4: ShowInfoPicture(1); break;
+        case 3: SettingsMenu(); break;
+        case 4: ShowInfoPicture(3); break;
+        case 5: ShowInfoPicture(1); break;
         default: start = -1; break;
         }
     }
@@ -1677,8 +1688,9 @@ static void TitleMenu(void)
 static void GameMenu(void)
 {
     static const PanelItem items[] = {
-        {"Abort Game", kPanelAction, false, false},
         {"Reset Level", kPanelAction, false, false},
+        {"Abort Game", kPanelAction, false, false},
+        {"", kPanelDivider, false, false},
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
@@ -1688,15 +1700,15 @@ static void GameMenu(void)
     PanelBegin();
     while (action == kStay) {
         ShowCursorOnce();
-        switch (PanelChoose("Paused", "Esc: resume", items, 5, &sel)) {
-        case 0:
+        switch (PanelChoose("Paused", "Esc: resume", items, 6, &sel)) {
+        case 0: action = kReset; break;
+        case 1:
             if (ConfirmEndGame())
                 action = kAbort;
             break;
-        case 1: action = kReset; break;
-        case 2: SettingsMenu(); break;
-        case 3: ShowInfoPicture(3); break;
-        case 4: ShowInfoPicture(1); break;
+        case 3: SettingsMenu(); break;
+        case 4: ShowInfoPicture(3); break;
+        case 5: ShowInfoPicture(1); break;
         default: action = kResume; break;
         }
     }

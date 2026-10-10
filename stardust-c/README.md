@@ -44,15 +44,16 @@ The original's menu bar (shown with Caps Lock) is replaced by panels:
 
 - **Space, Return or Esc** on the title screen: New Game, Start At Level…,
   Settings, Instructions, The Plot.
-- **Esc** during a game pauses it: Abort Game, Reset Level, Settings,
-  Instructions, The Plot. Esc again resumes.
+- **Esc** during a game pauses it: Reset Level, Abort Game, Settings,
+  Instructions, The Plot. Esc again resumes. Esc on a "Level N" screen goes
+  into the level paused, with this menu open.
 - **Settings**: Full / Partial / No Sound and Fast / Normal / Slow Animation,
   with the same effects as the original's Settings menu.
 
 Panels take arrows (or W/S), Return/Space/Enter to choose, Esc to go back, or
 the mouse. Passwords are upper-cased as you type. Instructions and The Plot close on
 any key or click, Esc included, without waiting for their music to finish.
-Esc also continues past the "Level N" screen, like a click or Space.
+Esc also closes the victory picture and the J+I+M sonnet.
 
 ## Layout
 

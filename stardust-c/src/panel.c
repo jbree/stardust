@@ -6,7 +6,7 @@
 #include "panel.h"
 #include "platform.h"
 
-enum { kPad = 24, kTitleH = 52, kRowH = 30, kHeadH = 28, kHintH = 34, kMinW = 300 };
+enum { kPad = 24, kTitleH = 52, kRowH = 30, kHeadH = 28, kDividerH = 13, kHintH = 34, kMinW = 300 };
 enum { kKeyS = 0x01, kKeyW = 0x0D, kReturn = 0x24, kSpace = 0x31, kBackspace = 0x33, kEscape = 0x35,
        kEnter = 0x4C, kDownArrow = 0x7D, kUpArrow = 0x7E };
 
@@ -200,8 +200,15 @@ typedef struct {
     int16_t top[32];
 } Menu;
 
-static int RowHeight(const PanelItem *it) { return it->kind == kPanelHeading ? kHeadH : kRowH; }
-static Boolean Selectable(const PanelItem *it) { return it->kind != kPanelHeading && !it->disabled; }
+static int RowHeight(const PanelItem *it)
+{
+    return it->kind == kPanelHeading ? kHeadH : it->kind == kPanelDivider ? kDividerH : kRowH;
+}
+
+static Boolean Selectable(const PanelItem *it)
+{
+    return it->kind != kPanelHeading && it->kind != kPanelDivider && !it->disabled;
+}
 
 static void Layout(Menu *m)
 {
@@ -210,12 +217,14 @@ static void Layout(Menu *m)
     int h = kTitleH;
     for (int i = 0; i < m->n; i++) {
         const PanelItem *it = &m->items[i];
+        m->top[i] = (int16_t)h;
+        h += RowHeight(it);
+        if (it->kind == kPanelDivider)
+            continue;
         SetText(it->kind == kPanelHeading ? 12 : 18, it->kind == kPanelHeading ? bold : normal, &kText);
         int iw = StringWidth(it->label) + (it->kind == kPanelChoice ? 28 : 0);
         if (iw > w)
             w = iw;
-        m->top[i] = (int16_t)h;
-        h += RowHeight(it);
     }
     SetText(10, normal, &kHint);
     if (StringWidth(m->hint) > w)
@@ -233,6 +242,12 @@ static void DrawMenu(const Menu *m, int sel)
     for (int i = 0; i < m->n; i++) {
         const PanelItem *it = &m->items[i];
         int y = m->top[i];
+        if (it->kind == kPanelDivider) {
+            Rect rule;
+            SetRect(&rule, m->box.left + kPad, y + kDividerH / 2, m->box.right - kPad, y + kDividerH / 2 + 1);
+            Fill(&rule, kBar);
+            continue;
+        }
         if (it->kind == kPanelHeading) {
             SetText(12, bold, &kHeading);
             Text(it->label, m->box.left + kPad, y + 20);
