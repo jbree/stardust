@@ -12,7 +12,8 @@ web: web/stardust.js
 
 web/stardust.js: $(SRC) src/*.h
 	emcc -O2 -std=gnu11 -sUSE_SDL=2 -sASYNCIFY -sASYNCIFY_STACK_SIZE=262144 -sSTACK_SIZE=1048576 \
-	    -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64MB -sENVIRONMENT=web \
+	    -sALLOW_MEMORY_GROWTH -sINITIAL_MEMORY=64MB -sINVOKE_RUN=0 \
+	    -sEXPORTED_RUNTIME_METHODS=callMain -sENVIRONMENT=web \
 	    --preload-file assets@/assets -o web/stardust.js $(SRC)
 
 assets:

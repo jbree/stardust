@@ -34,8 +34,8 @@ cd web && python3 -m http.server 8000   # then open http://localhost:8000
 loads the first installed of Geneva (the original's, on a Mac), Verdana,
 DejaVu Sans or Liberation Sans, or the `.ttf` named by `STARDUST_FONT`; the
 browser build draws text with the same choice of the user's fonts through a
-canvas. The game starts as soon as the page loads; sound begins with the
-first key or click, as browsers require.
+canvas. The page waits for a click before starting, since browsers only
+allow sound after one and the title's opening chime matters.
 
 ### Controls
 
