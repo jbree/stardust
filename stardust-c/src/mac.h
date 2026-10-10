@@ -97,8 +97,8 @@ void BitMapToRegion(RgnHandle r, GWorldPtr gw);
 void GetClip(RgnHandle r);
 void SetClip(RgnHandle r);
 
-/* Text: font 0 = system font (Chicago), 1 = application font (Geneva in the
- * original; DejaVu Sans here, which may be redistributed). */
+/* Text: font 0 = system font (Chicago), 1 = application font (Geneva, or
+ * the closest installed font). */
 void TextFont(int font);
 void TextFace(int face);
 void TextMode(int mode);

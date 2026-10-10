@@ -20,6 +20,5 @@ for path in glob.glob(os.path.join(src, 'Stardust 1.1.app_*')):
     shutil.copyfile(path, os.path.join(dst, f'{kind}_{rid}{ext}'))
     n += 1
 
-# The font, dejavu-sans.ttf, is checked in rather than taken from the host:
-# the original's Geneva is Apple's and can't be redistributed.
+# No font: qd.c uses one installed on the host (Geneva, the original's, on a Mac).
 print(f'{n} resources -> {os.path.normpath(dst)}', file=sys.stderr)

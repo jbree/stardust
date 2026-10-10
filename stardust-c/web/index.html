@@ -9,9 +9,7 @@
   main { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; gap: 10px; padding: 12px; box-sizing: border-box; }
   #frame { position: relative; width: min(100%, calc((100vh - 80px) * 4 / 3)); aspect-ratio: 4 / 3; background: #000; box-shadow: 0 0 0 1px #444; }
   canvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; outline: none; }
-  #start { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px;
-           background: #000; color: #9ff; cursor: pointer; font-size: 20px; text-align: center; }
-  #start small { color: #888; font-size: 13px; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #888; }
   p { margin: 0; color: #999; text-align: center; max-width: 640px; }
   kbd { border: 1px solid #555; border-radius: 3px; padding: 0 4px; color: #ccc; }
 </style>
@@ -20,29 +18,27 @@
 <main>
   <div id="frame">
     <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
-    <div id="start">Click to play Stardust<small id="status">loading&hellip;</small></div>
+    <div id="loading">loading&hellip;</div>
   </div>
   <p>Arrows or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &middot; <kbd>Space</kbd>/<kbd>Return</kbd> is magic &middot;
-     <kbd>Space</kbd>/<kbd>Esc</kbd> on the title screen opens the menu &middot; <kbd>Esc</kbd> pauses a game</p>
+     <kbd>Space</kbd>/<kbd>Return</kbd>/<kbd>Esc</kbd> on the title screen opens the menu &middot; <kbd>Esc</kbd> pauses a game</p>
 </main>
 <script>
   var canvas = document.getElementById('canvas');
-  var start = document.getElementById('start');
-  var ready = false;
   var Module = {
     canvas: canvas,
-    setStatus: function (s) { document.getElementById('status').textContent = s || 'ready'; },
-    onRuntimeInitialized: function () { ready = true; Module.setStatus('ready'); },
+    onRuntimeInitialized: function () { document.getElementById('loading').remove(); canvas.focus(); },
   };
+  // Browsers hold audio back until the first key or click; start it then.
+  ['keydown', 'mousedown', 'touchstart'].forEach(function (t) {
+    window.addEventListener(t, function () {
+      var a = Module.SDL2 && Module.SDL2.audioContext;
+      if (a && a.state !== 'running') a.resume();
+    }, true);
+  });
   // Keep the page from scrolling.
   window.addEventListener('keydown', function (e) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Backspace'].indexOf(e.key) >= 0) e.preventDefault();
-  });
-  start.addEventListener('click', function () {
-    if (!ready) return;
-    start.remove();
-    canvas.focus();
-    Module.callMain([]);
   });
 </script>
 <script async src="stardust.js"></script>

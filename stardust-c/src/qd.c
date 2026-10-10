@@ -487,18 +487,132 @@ void DrawPicture(PicHandle hdl, const Rect *dst)
 }
 
 /* ------------------------------------------------------------------ */
-/* Text */
+/* Text
+ *
+ * No font is bundled: the native build loads one installed on the host
+ * (Geneva, the original's, on a Mac), and the browser build has a canvas
+ * draw glyphs in an installed font. Glyphs are cached as alpha masks. */
 
+typedef struct {
+    int16_t size;
+    int ch;
+    int adv, xo, yo, w, h; /* bitmap offset from the pen; size in pixels */
+    unsigned char *alpha;
+} Glyph;
+
+enum { kGlyphSlots = 4096 };
+static Glyph glyphs[kGlyphSlots];
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+/* Draws `ch` at (ox, oy) on a box x box canvas; returns its advance. */
+EM_JS(int, JsGlyph, (int ch, int size, unsigned char *out, int box, int ox, int oy), {
+    var c = Module.glyphCanvas || (Module.glyphCanvas = document.createElement('canvas'));
+    if (c.width != box) c.width = c.height = box;
+    var g = c.getContext('2d', {willReadFrequently: true});
+    g.clearRect(0, 0, box, box);
+    g.font = size + 'px Geneva, Verdana, "DejaVu Sans", sans-serif';
+    g.fillStyle = '#fff';
+    var str = String.fromCodePoint(ch);
+    g.fillText(str, ox, oy);
+    var d = g.getImageData(0, 0, box, box).data;
+    for (var i = 0; i < box * box; i++)
+        HEAPU8[out + i] = d[i * 4 + 3];
+    return Math.round(g.measureText(str).width);
+});
+
+static Boolean Rasterize(Glyph *g)
+{
+    int box = 2 * g->size + 8, ox = g->size / 2 + 2, oy = g->size * 13 / 10 + 2;
+    unsigned char *full = calloc((size_t)box * box, 1);
+    g->adv = JsGlyph(g->ch, g->size, full, box, ox, oy);
+    int x0 = box, y0 = box, x1 = -1, y1 = -1;
+    for (int y = 0; y < box; y++)
+        for (int x = 0; x < box; x++)
+            if (full[y * box + x]) {
+                x0 = x < x0 ? x : x0, x1 = x > x1 ? x : x1;
+                y0 = y < y0 ? y : y0, y1 = y > y1 ? y : y1;
+            }
+    if (x1 < 0)
+        x0 = y0 = 0, x1 = y1 = -1;
+    g->xo = x0 - ox, g->yo = y0 - oy, g->w = x1 - x0 + 1, g->h = y1 - y0 + 1;
+    g->alpha = malloc((size_t)(g->w * g->h) + 1);
+    for (int y = 0; y < g->h; y++)
+        memcpy(g->alpha + y * g->w, full + (y0 + y) * box + x0, (size_t)g->w);
+    free(full);
+    return true;
+}
+#else
 static stbtt_fontinfo font;
 static unsigned char *fontData;
 
 static Boolean LoadFont(void)
 {
-    if (fontData)
-        return true;
-    long size;
-    fontData = LoadAssetFile("dejavu-sans.ttf", &size);
-    return fontData && stbtt_InitFont(&font, fontData, stbtt_GetFontOffsetForIndex(fontData, 0));
+    static Boolean tried;
+    if (fontData || tried)
+        return fontData != NULL;
+    tried = true;
+    const char *paths[] = {
+        getenv("STARDUST_FONT"),
+        "/System/Library/Fonts/Geneva.ttf",
+        "/System/Library/Fonts/Supplemental/Verdana.ttf",
+        "/Library/Fonts/Verdana.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "C:\\Windows\\Fonts\\verdana.ttf",
+        "C:\\Windows\\Fonts\\arial.ttf",
+    };
+    for (size_t i = 0; i < sizeof paths / sizeof *paths && !fontData; i++) {
+        FILE *f = paths[i] ? fopen(paths[i], "rb") : NULL;
+        if (!f)
+            continue;
+        fseek(f, 0, SEEK_END);
+        long n = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        fontData = malloc((size_t)n);
+        if (fread(fontData, 1, (size_t)n, f) != (size_t)n ||
+            !stbtt_InitFont(&font, fontData, stbtt_GetFontOffsetForIndex(fontData, 0))) {
+            free(fontData);
+            fontData = NULL;
+        }
+        fclose(f);
+    }
+    if (!fontData)
+        fprintf(stderr, "stardust: no font found; set STARDUST_FONT to a .ttf file\n");
+    return fontData != NULL;
+}
+
+static Boolean Rasterize(Glyph *g)
+{
+    if (!LoadFont())
+        return false;
+    float scale = stbtt_ScaleForMappingEmToPixels(&font, (float)g->size);
+    int adv, lsb;
+    stbtt_GetCodepointHMetrics(&font, g->ch, &adv, &lsb);
+    g->adv = (int)(adv * scale + 0.5f);
+    unsigned char *bmp = stbtt_GetCodepointBitmap(&font, scale, scale, g->ch, &g->w, &g->h, &g->xo, &g->yo);
+    g->alpha = malloc((size_t)(g->w * g->h) + 1);
+    if (bmp)
+        memcpy(g->alpha, bmp, (size_t)(g->w * g->h));
+    stbtt_FreeBitmap(bmp, NULL);
+    return true;
+}
+#endif
+
+static const Glyph *GetGlyph(int ch, int size)
+{
+    unsigned i = ((unsigned)ch * 31u + (unsigned)size) % kGlyphSlots;
+    for (; glyphs[i].alpha; i = (i + 1) % kGlyphSlots)
+        if (glyphs[i].ch == ch && glyphs[i].size == size)
+            return &glyphs[i];
+    Glyph g = {(int16_t)size, ch, 0, 0, 0, 0, 0, NULL};
+    if (!Rasterize(&g))
+        return NULL;
+    glyphs[i] = g;
+    return &glyphs[i];
 }
 
 void TextFont(int f) { thePort->txFont = (int16_t)f; }
@@ -523,42 +637,31 @@ static int Unicode(unsigned char c)
 static int EffectiveSize(void) { return thePort->txSize ? thePort->txSize : 12; }
 static Boolean EffectiveBold(void) { return thePort->txFont == 0 || (thePort->txFace & bold); }
 
-static int CharWidth(int ch, float scale)
-{
-    int adv, lsb;
-    stbtt_GetCodepointHMetrics(&font, ch, &adv, &lsb);
-    return (int)(adv * scale + 0.5f) + (EffectiveBold() ? 1 : 0);
-}
-
 int StringWidth(const char *s)
 {
-    if (!LoadFont())
-        return 0;
-    float scale = stbtt_ScaleForMappingEmToPixels(&font, (float)EffectiveSize());
     int w = 0;
-    for (; *s; s++)
-        w += CharWidth(Unicode((unsigned char)*s), scale);
+    for (; *s; s++) {
+        const Glyph *g = GetGlyph(Unicode((unsigned char)*s), EffectiveSize());
+        if (g)
+            w += g->adv + (EffectiveBold() ? 1 : 0);
+    }
     return w;
 }
 
 void DrawString(const char *s)
 {
-    if (!LoadFont())
-        return;
-    float scale = stbtt_ScaleForMappingEmToPixels(&font, (float)EffectiveSize());
     uint32_t fg = FgPixel();
+    /* No anti-aliasing, as on the Mac; thin small strokes need a lower cutoff. */
+    int cutoff = EffectiveSize() <= 12 ? 72 : 128;
     for (; *s; s++) {
-        int ch = Unicode((unsigned char)*s);
-        int gw, gh, xo, yo;
-        unsigned char *bmp = stbtt_GetCodepointBitmap(&font, scale, scale, ch, &gw, &gh, &xo, &yo);
-        /* No anti-aliasing, as on the Mac; thin small strokes need a lower cutoff. */
-        int cutoff = EffectiveSize() <= 12 ? 72 : 128;
+        const Glyph *g = GetGlyph(Unicode((unsigned char)*s), EffectiveSize());
+        if (!g)
+            continue;
         for (int pass = 0; pass < (EffectiveBold() ? 2 : 1); pass++)
-            for (int y = 0; y < gh; y++)
-                for (int x = 0; x < gw; x++)
-                    if (bmp[y * gw + x] >= cutoff)
-                        Plot(thePort, thePort->pen.h + xo + x + pass, thePort->pen.v + yo + y, fg);
-        stbtt_FreeBitmap(bmp, NULL);
-        thePort->pen.h += (int16_t)CharWidth(ch, scale);
+            for (int y = 0; y < g->h; y++)
+                for (int x = 0; x < g->w; x++)
+                    if (g->alpha[y * g->w + x] >= cutoff)
+                        Plot(thePort, thePort->pen.h + g->xo + x + pass, thePort->pen.v + g->yo + y, fg);
+        thePort->pen.h += (int16_t)(g->adv + (EffectiveBold() ? 1 : 0));
     }
 }

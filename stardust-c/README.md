@@ -30,10 +30,12 @@ cd web && python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
 `assets/` holds the game's pictures, sounds and level texts, copied from
-`../extracted` by `tools/make_assets.py`, plus `dejavu-sans.ttf`
-([DejaVu Sans](https://dejavu-fonts.github.io/) 2.37, freely redistributable;
-see `dejavu-LICENSE.txt`) standing in for the original's Geneva, which is
-Apple's.
+`../extracted` by `tools/make_assets.py`. No font is bundled: the native build
+loads the first installed of Geneva (the original's, on a Mac), Verdana,
+DejaVu Sans or Liberation Sans, or the `.ttf` named by `STARDUST_FONT`; the
+browser build draws text with the same choice of the user's fonts through a
+canvas. The game starts as soon as the page loads; sound begins with the
+first key or click, as browsers require.
 
 ### Controls
 
@@ -115,7 +117,7 @@ exit and the victory sequence.
 
 - The victory flash ran unpaced (as fast as a 1995 Mac could draw); each step is
   now presented so it stays visible.
-- Fonts: DejaVu Sans for everything, in place of Geneva and Chicago.
+- Fonts: Geneva or the closest installed font for everything, also in place of Chicago.
 - No menu bar or Caps Lock: the Space and Esc panels above replace the menus
   and dialogs. The About box and Quit are gone (close the window to quit). The
   title screen shows "press space, return or esc for menu" where the menu bar
