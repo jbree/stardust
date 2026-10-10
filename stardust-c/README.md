@@ -47,9 +47,9 @@ hold J+I+M.
 The original's menu bar (shown with Caps Lock) is replaced by panels:
 
 - **Space, Return or Esc** on the title screen: New Game, Start At Level…,
-  Settings, Instructions, The Plot.
+  Settings, Instructions, The Plot, About Stardust.
 - **Esc** during a game pauses it: Reset Level, Abort Game, Settings,
-  Instructions, The Plot. Esc again resumes. Esc on a "Level N" screen goes
+  Instructions, The Plot, About Stardust. Esc again resumes. Esc on a "Level N" screen goes
   into the level paused, with this menu open.
 - **Settings**: Full / Partial / No Sound and Fast / Normal / Slow Animation,
   with the same effects as the original's Settings menu.
@@ -120,7 +120,8 @@ exit and the victory sequence.
   now presented so it stays visible.
 - Fonts: Geneva or the closest installed font for everything, also in place of Chicago.
 - No menu bar or Caps Lock: the Space and Esc panels above replace the menus
-  and dialogs. The About box and Quit are gone (close the window to quit). The
+  and dialogs; About Stardust in both shows the original About box. Quit is
+  gone (close the window to quit). The
   title screen shows "press space, return or esc for menu" where the menu bar
   was.
 - Always the 640×480 "full screen" mode; no small-screen window, no desk

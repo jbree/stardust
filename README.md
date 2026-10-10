@@ -1,9 +1,9 @@
 # Stardust
 
 **Stardust 1.1 © 1995 James (Jim) Burton.** All credit for Stardust belongs to
-him: the game's design, its fifty puzzle levels, the artwork and sound, the
-plot, and the original program, which he wrote in THINK Pascal for the classic
-Macintosh. This repository only makes his game run on today's computers.
+him: the game's design, its fifty puzzle levels, the artwork, the plot, and
+the original program, which he wrote in THINK Pascal for the classic
+Macintosh. (His About box notes that the sounds are not his own.) This repository only makes his game run on today's computers.
 
 **[Play it in your browser](https://jbree.github.io/stardust/)**, or build it
 for your own computer (see [`stardust-c/README.md`](stardust-c/README.md)).
@@ -33,7 +33,8 @@ parts around the game:
 - **Menus.** The Mac menu bar, and Caps Lock to show it, are gone. Space,
   Return or Esc on the title screen opens a menu: New Game, Start At Level,
   Settings, Instructions, The Plot. Esc during a game pauses it, with Reset
-  Level, Abort Game, Settings, Instructions and The Plot. Settings has the
+  Level, Abort Game, Settings, Instructions and The Plot. Both menus also have
+  About Stardust, the original About box. Settings has the
   original sound (Full / Partial / None) and animation speed (Fast / Normal /
   Slow) options.
 - **Dialogs.** The password, "are you sure" and invalid-password dialogs are
@@ -41,8 +42,8 @@ parts around the game:
 - **Small conveniences.** Esc continues past a "Level N" screen (opening the
   pause menu), and Instructions and The Plot close on any key without waiting
   for their music to finish.
-- **Removed.** The About box, the Quit command (close the window instead), and
-  the small-screen window mode.
+- **Removed.** The Quit command (close the window instead) and the
+  small-screen window mode.
 - **Fonts.** Text uses Geneva if it's installed, as the original did, or the
   closest available font.
 - **Browser.** The web version starts with a click, since browsers only allow
@@ -52,7 +53,7 @@ parts around the game:
 
 ## Rights
 
-The game itself — its artwork, sounds, levels and text — remains © 1995 James
-Burton, all rights reserved. No license is granted here for any of it. If you
+The game itself — its artwork, levels and text — remains © 1995 James Burton,
+all rights reserved; the sounds belong to their respective owners. No license is granted here for any of it. If you
 are Jim Burton and would like this taken down or changed, please open an
 issue.

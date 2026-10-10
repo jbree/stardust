@@ -1654,6 +1654,42 @@ static void SettingsMenu(void)
     }
 }
 
+/* The Apple menu's About box (DLOG 128): PICT 127 in a red-framed black
+ * window, between sounds 103 and 102. The original waited for a click;
+ * a key works too. */
+static void ShowAbout(void)
+{
+    static const Rect bounds = {104, 170, 311, 470};
+    RGBColor red = {0xEEEE, 0, 0};
+    Rect r = bounds;
+    SetGWorld(window);
+    InsetRect(&r, -8, -8);
+    RGBForeColor(&red);
+    PaintRect(&r);
+    ForeColor(blackColor);
+    InsetRect(&r, 1, 1);
+    PaintRect(&r);
+    RGBForeColor(&red);
+    InsetRect(&r, 2, 2);
+    PaintRect(&r);
+    ForeColor(blackColor);
+    InsetRect(&r, 3, 3);
+    PaintRect(&r);
+    PicHandle pic = GetPicture(127);
+    if (pic) {
+        SetRect(&r, bounds.left + 3, bounds.top + 3, bounds.left + 296, bounds.top + 205);
+        DrawPicture(pic, &r);
+        ReleasePicture(pic);
+    }
+    PlaySound(103);
+    FlushEvents(everyEvent, 0); /* input during the sound is ignored, as before */
+    EventRecord ev;
+    while (!GetNextEvent(everyEvent, &ev) || (ev.what != keyDown && ev.what != mouseDown))
+        PlatformYield();
+    PlaySound(102);
+    FlushEvents(everyEvent, 0);
+}
+
 static void TitleMenu(void)
 {
     static const PanelItem items[] = {
@@ -1663,17 +1699,19 @@ static void TitleMenu(void)
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
+        {"About Stardust", kPanelAction, false, false},
     };
     int sel = 0, start = 0;
     PanelBegin();
     while (start == 0) {
         ShowCursorOnce();
-        switch (PanelChoose("Stardust", "Esc: close", items, 6, &sel)) {
+        switch (PanelChoose("Stardust", "Esc: close", items, 7, &sel)) {
         case 0: start = 1; break;
         case 1: start = AskForPassword(); break;
         case 3: SettingsMenu(); break;
         case 4: ShowInfoPicture(3); break;
         case 5: ShowInfoPicture(1); break;
+        case 6: ShowAbout(); break;
         default: start = -1; break;
         }
     }
@@ -1694,13 +1732,14 @@ static void GameMenu(void)
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
+        {"About Stardust", kPanelAction, false, false},
     };
     enum { kStay, kResume, kAbort, kReset } action = kStay;
     int sel = 0;
     PanelBegin();
     while (action == kStay) {
         ShowCursorOnce();
-        switch (PanelChoose("Paused", "Esc: resume", items, 6, &sel)) {
+        switch (PanelChoose("Paused", "Esc: resume", items, 7, &sel)) {
         case 0: action = kReset; break;
         case 1:
             if (ConfirmEndGame())
@@ -1709,6 +1748,7 @@ static void GameMenu(void)
         case 3: SettingsMenu(); break;
         case 4: ShowInfoPicture(3); break;
         case 5: ShowInfoPicture(1); break;
+        case 6: ShowAbout(); break;
         default: action = kResume; break;
         }
     }
