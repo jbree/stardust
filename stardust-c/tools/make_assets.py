@@ -20,8 +20,6 @@ for path in glob.glob(os.path.join(src, 'Stardust 1.1.app_*')):
     shutil.copyfile(path, os.path.join(dst, f'{kind}_{rid}{ext}'))
     n += 1
 
-# applFont: the original used Geneva; bundle it from the host when present.
-for f in ['/System/Library/Fonts/Geneva.ttf']:
-    if os.path.exists(f):
-        shutil.copyfile(f, os.path.join(dst, 'geneva.ttf'))
+# The font, dejavu-sans.ttf, is checked in rather than taken from the host:
+# the original's Geneva is Apple's and can't be redistributed.
 print(f'{n} resources -> {os.path.normpath(dst)}', file=sys.stderr)

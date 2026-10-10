@@ -497,7 +497,7 @@ static Boolean LoadFont(void)
     if (fontData)
         return true;
     long size;
-    fontData = LoadAssetFile("geneva.ttf", &size);
+    fontData = LoadAssetFile("dejavu-sans.ttf", &size);
     return fontData && stbtt_InitFont(&font, fontData, stbtt_GetFontOffsetForIndex(fontData, 0));
 }
 
@@ -519,7 +519,7 @@ static int Unicode(unsigned char c)
     }
 }
 
-/* The system font is Chicago 12; Geneva drawn bold stands in for it. */
+/* The system font is Chicago 12; the application font drawn bold stands in for it. */
 static int EffectiveSize(void) { return thePort->txSize ? thePort->txSize : 12; }
 static Boolean EffectiveBold(void) { return thePort->txFont == 0 || (thePort->txFace & bold); }
 
