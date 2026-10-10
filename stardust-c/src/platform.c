@@ -183,6 +183,9 @@ static void Present(void)
     SDL_RenderPresent(renderer);
     dirty = false;
     lastPresent = SDL_GetTicks();
+#ifdef __EMSCRIPTEN__
+    EM_ASM({ if (Module.onPresent) Module.onPresent(); }); /* for measuring smoothness */
+#endif
 }
 
 /* ------------------------------------------------------------------ */
@@ -447,6 +450,23 @@ static void RunScript(uint32_t now)
     }
 }
 
+#ifdef __EMSCRIPTEN__
+/* Timer-based sleeps take 4-8 ms or more however short the request (Safari
+ * is worst), so: a message round-trip to yield, and the next display frame
+ * to wait for time to pass. */
+EM_ASYNC_JS(void, YieldToBrowser, (), {
+    await new Promise(function (resolve) {
+        var c = Module.yieldChannel || (Module.yieldChannel = new MessageChannel());
+        c.port1.onmessage = function () { resolve(); };
+        c.port2.postMessage(0);
+    });
+});
+
+EM_ASYNC_JS(void, WaitForFrame, (), {
+    await new Promise(function (resolve) { requestAnimationFrame(function () { resolve(); }); });
+});
+#endif
+
 void PlatformPoll(void)
 {
     uint32_t now = SDL_GetTicks();
@@ -471,7 +491,7 @@ void PlatformPoll(void)
     if (now - lastYield >= 8) {
         lastYield = now;
 #ifdef __EMSCRIPTEN__
-        emscripten_sleep(0);
+        YieldToBrowser();
 #else
         SDL_Delay(1);
 #endif
@@ -485,7 +505,15 @@ void PlatformIdle(void)
         return;
     }
 #ifdef __EMSCRIPTEN__
-    emscripten_sleep(1);
+    if (dirty)
+        Present();
+    /* A frame wait can overshoot the next tick by most of a frame; when the
+     * tick is close, just yield. */
+    uint32_t ms = SDL_GetTicks() - startMs, untilTick = 1000 / 60 - ms % 1000 * 60 % 1000 / 60;
+    if (untilTick <= 5)
+        YieldToBrowser();
+    else
+        WaitForFrame();
 #else
     SDL_Delay(1);
 #endif
@@ -502,6 +530,14 @@ void PlatformYield(void)
 /* ------------------------------------------------------------------ */
 /* Event Manager */
 
+/* Busy loops rest every few polls. A browser rest lasts up to a display
+ * frame rather than ~1 ms, so it comes that many times less often. */
+#ifdef __EMSCRIPTEN__
+enum { kRestScale = 16 };
+#else
+enum { kRestScale = 1 };
+#endif
+
 uint32_t TickCount(void)
 {
     static uint32_t last;
@@ -512,7 +548,7 @@ uint32_t TickCount(void)
     /* Spinning on an unchanged tick: rest now and then, not on every call,
      * so loops that also do work (the title effects) keep a Mac-like pace. */
     static unsigned spins;
-    if (t == last && ++spins % 8 == 0)
+    if (t == last && ++spins % (8 * kRestScale) == 0)
         PlatformIdle();
     last = t;
     return t;
@@ -569,7 +605,7 @@ Boolean GetNextEvent(int mask, EventRecord *ev)
      * fourth empty poll keeps the title animation near its original pace. */
     static int empties;
     Boolean got = NextEvent(mask, ev);
-    if (!got && ++empties % 4 == 0)
+    if (!got && ++empties % (4 * kRestScale) == 0)
         PlatformIdle();
     return got;
 }

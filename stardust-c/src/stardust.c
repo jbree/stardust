@@ -1406,8 +1406,16 @@ static void LoadHeroGraphics(void)
 static void Tick(void)
 {
     if (!inGame) {
+        /* The original drew the title effects as fast as the Mac could; a
+         * fixed number per tick keeps that pace on any machine or browser. */
+        static uint32_t tick;
+        static int steps;
+        uint32_t now = TickCount();
+        if (now != tick)
+            tick = now, steps = 0;
         ShowCursorOnce();
-        TitleStep();
+        if (steps++ < 20)
+            TitleStep();
         return;
     }
     HideCursorOnce();
