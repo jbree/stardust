@@ -144,6 +144,7 @@ SndChannelPtr SndNewChannel(void);
 void SndDisposeChannel(SndChannelPtr chan);
 void SndPlay(SndChannelPtr chan, int sndID, Boolean async);
 Boolean SndChannelBusy(SndChannelPtr chan);
+void SndStop(SndChannelPtr chan); /* SndDoImmediate(quietCmd) */
 int GetSoundVol(void);
 
 /* Returns a malloc'd copy of TEXT resource `id` (NUL-terminated) or NULL. */

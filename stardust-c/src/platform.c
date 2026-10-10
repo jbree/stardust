@@ -702,6 +702,15 @@ void SndPlay(SndChannelPtr chan, int id, Boolean async)
             PlatformIdle();
 }
 
+void SndStop(SndChannelPtr chan)
+{
+    if (!chan)
+        return;
+    SDL_LockAudioDevice(audioDev);
+    chan->s = NULL;
+    SDL_UnlockAudioDevice(audioDev);
+}
+
 int GetSoundVol(void) { return audioDev ? 7 : 0; }
 
 /* ------------------------------------------------------------------ */

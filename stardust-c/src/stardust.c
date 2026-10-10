@@ -167,7 +167,9 @@ static void CursorIsVisible(void) { cursorVisible = true; }
 /* ------------------------------------------------------------------ */
 /* Title screen */
 
-/* fn045E: The Plot / Simple Instructions (PICT 301, 303). */
+/* fn045E: The Plot / Simple Instructions (PICT 301, 303). The original
+ * played the music synchronously, ignoring input until it ended; here any
+ * key or click, Esc included, leaves at once. */
 static void ShowInfoPicture(int n)
 {
     PicHandle pic = GetPicture(300 + n);
@@ -175,11 +177,19 @@ static void ShowInfoPicture(int n)
     if (!pic)
         return;
     Rect r;
+    SetRect(&r, 0, 0, 640, 20); /* where the menu bar was */
+    ForeColor(blackColor);
+    PaintRect(&r);
     SetRect(&r, 0, 20, 640, 480);
     DrawPicture(pic, &r);
     ReleasePicture(pic);
-    PlaySound(107);
-    WaitForClickOrKey();
+    if (soundOn)
+        SndPlay(channels[5], 107, true);
+    EventRecord ev;
+    while (!GetNextEvent(everyEvent, &ev) || (ev.what != keyDown && ev.what != mouseDown))
+        PlatformYield();
+    SndStop(channels[5]);
+    FlushEvents(everyEvent, 0);
 }
 
 /* fn0506: build the logo region used to keep effects off the logo. */
@@ -1629,19 +1639,6 @@ static void SettingsMenu(void)
     }
 }
 
-/* Shows an information picture, then puts back what was under the menu. */
-static void ShowInfoOver(GWorldPtr under, int n)
-{
-    Rect bar;
-    SetRect(&bar, 0, 0, 640, 20); /* where the menu bar was */
-    SetGWorld(window);
-    ForeColor(blackColor);
-    PaintRect(&bar);
-    ShowInfoPicture(n);
-    FlushEvents(everyEvent, 0); /* the key that closed it is still queued */
-    CopyBits(under, window, &screenRect, &screenRect, srcCopy, NULL);
-}
-
 static void TitleMenu(void)
 {
     static const PanelItem items[] = {
@@ -1650,33 +1647,24 @@ static void TitleMenu(void)
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
     };
-    GWorldPtr under = NewGWorld(640, 480);
-    CopyBits(window, under, &screenRect, &screenRect, srcCopy, NULL);
-    int sel = 0, lvl;
-    for (Boolean done = false; !done;) {
+    int sel = 0, start = 0;
+    PanelBegin();
+    while (start == 0) {
         ShowCursorOnce();
         switch (PanelChoose("Stardust", "Esc: close", items, 4, &sel)) {
-        case 0:
-            inGame = true;
-            LoadLevel(1, true, true);
-            done = true;
-            break;
-        case 1:
-            lvl = AskForPassword();
-            if (lvl > 0) {
-                level = (int16_t)lvl;
-                inGame = true;
-                LoadLevel(level, true, true);
-                done = true;
-            }
-            break;
-        case 2: ShowInfoOver(under, 3); break;
-        case 3: ShowInfoOver(under, 1); break;
-        default: done = true; break;
+        case 0: start = 1; break;
+        case 1: start = AskForPassword(); break;
+        case 2: ShowInfoPicture(3); break;
+        case 3: ShowInfoPicture(1); break;
+        default: start = -1; break;
         }
     }
-    DisposeGWorld(under);
-    SetGWorld(window);
+    PanelEnd();
+    if (start > 0) {
+        level = (int16_t)start;
+        inGame = true;
+        LoadLevel(level, true, true);
+    }
 }
 
 static void GameMenu(void)
@@ -1688,31 +1676,30 @@ static void GameMenu(void)
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
     };
-    GWorldPtr under = NewGWorld(640, 480);
-    CopyBits(window, under, &screenRect, &screenRect, srcCopy, NULL);
+    enum { kStay, kResume, kAbort, kReset } action = kStay;
     int sel = 0;
-    for (Boolean done = false; !done;) {
+    PanelBegin();
+    while (action == kStay) {
         ShowCursorOnce();
         switch (PanelChoose("Paused", "Esc: resume", items, 5, &sel)) {
         case 0:
-            if (ConfirmEndGame()) {
-                inGame = false;
-                InitTitle();
-                done = true;
-            }
+            if (ConfirmEndGame())
+                action = kAbort;
             break;
-        case 1:
-            LoadLevel(level, false, false);
-            done = true;
-            break;
+        case 1: action = kReset; break;
         case 2: SettingsMenu(); break;
-        case 3: ShowInfoOver(under, 3); break;
-        case 4: ShowInfoOver(under, 1); break;
-        default: done = true; break;
+        case 3: ShowInfoPicture(3); break;
+        case 4: ShowInfoPicture(1); break;
+        default: action = kResume; break;
         }
     }
-    DisposeGWorld(under);
-    SetGWorld(window);
+    PanelEnd();
+    if (action == kAbort) {
+        inGame = false;
+        InitTitle();
+    } else if (action == kReset) {
+        LoadLevel(level, false, false);
+    }
 }
 
 /* fn50A8 */

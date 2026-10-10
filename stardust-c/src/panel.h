@@ -13,6 +13,12 @@ typedef struct {
     Boolean disabled;
 } PanelItem;
 
+/* Panels opened between these share one backdrop, and the screen is put
+ * back only at PanelEnd. Anything drawn in between is covered by the next
+ * panel. */
+void PanelBegin(void);
+void PanelEnd(void);
+
 /* Returns the chosen item's index, or -1 for Escape or a click outside.
  * *sel is the highlighted item, kept so a re-opened panel stays in place. */
 int PanelChoose(const char *title, const char *hint, const PanelItem *items, int n, int *sel);

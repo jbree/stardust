@@ -22,8 +22,12 @@ static struct {
     RGBColor fg, bg;
     int16_t font, size, face, mode;
     RgnHandle clip;
-    uint32_t *under;
 } saved;
+
+/* Within PanelBegin/PanelEnd one panel replaces the next without the
+ * screen being restored in between, which would flicker. */
+static int session;
+static uint32_t *under, *dimmed;
 
 static GWorldPtr Screen(void) { return ScreenPort(); }
 
@@ -118,20 +122,41 @@ static void Open(void)
     TextMode(srcOr);
 
     size_t n = (size_t)thePort->w * thePort->h;
-    saved.under = malloc(n * 4);
-    memcpy(saved.under, thePort->px, n * 4);
-    for (size_t i = 0; i < n; i++) {
-        uint32_t p = thePort->px[i];
-        thePort->px[i] = ((p >> 16 & 0xFF) * 3 / 8) << 16 | ((p >> 8 & 0xFF) * 3 / 8) << 8 | (p & 0xFF) * 3 / 8;
+    if (!under) {
+        under = malloc(n * 4);
+        dimmed = malloc(n * 4);
+        memcpy(under, thePort->px, n * 4);
+        for (size_t i = 0; i < n; i++) {
+            uint32_t p = under[i];
+            dimmed[i] = ((p >> 16 & 0xFF) * 3 / 8) << 16 | ((p >> 8 & 0xFF) * 3 / 8) << 8 | (p & 0xFF) * 3 / 8;
+        }
     }
+    memcpy(thePort->px, dimmed, n * 4);
     ScreenDirty();
+}
+
+static void Restore(void)
+{
+    GWorldPtr s = Screen();
+    memcpy(s->px, under, (size_t)s->w * s->h * 4);
+    free(under);
+    free(dimmed);
+    under = dimmed = NULL;
+    ScreenDirty();
+}
+
+void PanelBegin(void) { session++; }
+
+void PanelEnd(void)
+{
+    if (--session == 0 && under)
+        Restore();
 }
 
 static void Close(void)
 {
-    memcpy(thePort->px, saved.under, (size_t)thePort->w * thePort->h * 4);
-    free(saved.under);
-    ScreenDirty();
+    if (!session)
+        Restore();
     SetClip(saved.clip);
     DisposeRgn(saved.clip);
     thePort->fg = saved.fg, thePort->bg = saved.bg;

@@ -49,7 +49,8 @@ The original's menu bar (shown with Caps Lock) is replaced by panels:
   with the same effects as the original's Settings menu.
 
 Panels take arrows (or W/S), Return/Space/Enter to choose, Esc to go back, or
-the mouse. Passwords are upper-cased as you type.
+the mouse. Passwords are upper-cased as you type. Instructions and The Plot close on
+any key or click, Esc included, without waiting for their music to finish.
 
 ## Layout
 
