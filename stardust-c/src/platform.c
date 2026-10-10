@@ -29,6 +29,13 @@ static uint64_t vclock;
 static FILE *frameLog;
 static uint32_t lastLoggedTick = 0xFFFFFFFF;
 static Boolean frameChanged;
+static Boolean logging = true;
+Boolean platformIsOriginal;
+
+/* Script times count from startup, or from the last "sync". */
+static Boolean syncArmed;
+static uint32_t scriptBase, syncBase;
+static int syncs;
 
 static uint32_t NowMs(void)
 {
@@ -41,10 +48,12 @@ static void Advance(void)
         vclock++;
 }
 
+static uint32_t Ticks(void) { return (uint32_t)((uint64_t)NowMs() * 60 / 1000); }
+
 void PlatformLog(const char *fmt, int value)
 {
-    if (frameLog) {
-        fprintf(frameLog, "%u ", NowMs() * 60 / 1000);
+    if (frameLog && logging) {
+        fprintf(frameLog, "%u ", Ticks());
         fprintf(frameLog, fmt, value);
         fputc('\n', frameLog);
     }
@@ -74,10 +83,30 @@ unsigned char *LoadAssetFile(const char *name, long *size)
     return buf;
 }
 
+/* The port's menus and the original's differ, so a script reaches a level
+ * by different inputs in each. A "sync" line makes the next level load
+ * restart both on the same clock and random seed, and logging resumes. */
+static void Sync(void)
+{
+    syncArmed = false;
+    syncs++;
+    vclock = (uint64_t)syncs * 10000000 * 4; /* 10^4 s per segment */
+    randSeed = 12345;
+    syncBase = NowMs();
+    logging = true;
+    frameChanged = true;
+    if (frameLog)
+        fprintf(frameLog, "sync\n");
+}
+
+int PlatformSyncs(void) { return syncs; }
+
 char *GetTextResource(int id)
 {
     char name[1100];
     long size;
+    if (syncArmed && id >= 200)
+        Sync();
     /* Tests may substitute their own levels. */
     const char *dir = getenv("STARDUST_LEVELS");
     if (dir) {
@@ -128,7 +157,7 @@ void ScreenDirty(void) { dirty = true, frameChanged = true; }
 
 static void LogFrame(uint32_t tick)
 {
-    if (!frameLog || tick == lastLoggedTick)
+    if (!frameLog || !logging || tick == lastLoggedTick)
         return;
     lastLoggedTick = tick;
     if (!frameChanged)
@@ -195,12 +224,6 @@ static int MacKeyCode(SDL_Scancode sc)
     return -1;
 }
 
-#ifdef __EMSCRIPTEN__
-/* Browsers send Caps Lock as unreliable key events; the page tracks the
- * real state with getModifierState("CapsLock"). */
-EM_JS(int, BrowserCapsLock, (void), { return Module.capsLock ? 1 : 0; });
-#endif
-
 static uint16_t Modifiers(void)
 {
     /* Also trust our own key state: SDL's Emscripten port leaves modstate 0. */
@@ -213,11 +236,8 @@ static uint16_t Modifiers(void)
         m |= KMOD_SHIFT;
     if (KeyDown(keymap, 0x3A))
         m |= KMOD_ALT;
-#ifdef __EMSCRIPTEN__
-    m = (SDL_Keymod)((m & ~KMOD_CAPS) | (BrowserCapsLock() ? KMOD_CAPS : 0));
-#endif
     uint16_t r = 0;
-    /* Control doubles as Command so shortcuts work where Cmd is taken (browsers, Linux). */
+    /* Only the original's menu shortcuts (under emulation) still use these. */
     if (m & (KMOD_GUI | KMOD_CTRL))
         r |= cmdKey;
     if (m & KMOD_SHIFT)
@@ -237,7 +257,7 @@ static void Post(int what, uint32_t message)
     EventRecord *e = &queue[qtail];
     e->what = (int16_t)what;
     e->message = message;
-    e->when = TickCount();
+    e->when = Ticks(); /* not TickCount: scripted input mustn't advance the clock */
     e->where = mousePos;
     e->modifiers = Modifiers();
     qtail = next;
@@ -329,8 +349,12 @@ static void HandleEvent(const SDL_Event *ev)
  *   <ms> click <h> <v>
  *   <ms> mdown|mmove|mup <h> <v>
  *   <ms> shot <file.bmp>
+ *   <ms> nolog                           stop logging until the next sync
+ *   <ms> arm                             the next level load syncs (see Sync)
  *   <ms> quit
- * where <ms> counts from startup. */
+ *   sync                                 wait for that load
+ * where <ms> counts from startup or the last sync. A line prefixed "port " or
+ * "orig " is only for that program; between arm and sync it stops logging. */
 
 static FILE *script;
 static char scriptLine[256];
@@ -352,15 +376,40 @@ static void RunScript(uint32_t now)
                 return;
             scriptPending = true;
         }
-        unsigned ms;
-        char cmd[32] = "", a[64] = "", b[64] = "";
-        if (sscanf(scriptLine, "%u %31s %63s %63s", &ms, cmd, a, b) < 2) {
+        char *line = scriptLine;
+        if (!strncmp(line, "sync", 4)) {
+            /* Wait for the level load; later lines time from it. A load
+             * that never comes (the keys fell on a level title) times out. */
+            static uint32_t waitFrom;
+            if (syncArmed && !waitFrom)
+                waitFrom = now ? now : 1;
+            if (syncArmed && now - waitFrom < 30000)
+                return;
+            if (syncArmed)
+                syncArmed = false, syncBase = now;
+            waitFrom = 0;
+            scriptBase = syncBase;
             scriptPending = false;
             continue;
         }
-        if (now < ms)
+        Boolean mine = true, specific = false;
+        if (!strncmp(line, "port ", 5) || !strncmp(line, "orig ", 5)) {
+            specific = true;
+            mine = (line[0] == 'o') == platformIsOriginal;
+            line += 5;
+        }
+        unsigned ms;
+        char cmd[32] = "", a[64] = "", b[64] = "";
+        if (!mine || sscanf(line, "%u %31s %63s %63s", &ms, cmd, a, b) < 2) {
+            scriptPending = false;
+            continue;
+        }
+        if (now < scriptBase + ms)
             return;
         scriptPending = false;
+        /* What follows differs between the programs until the sync. */
+        if (specific && syncArmed)
+            logging = false;
         SDL_Event ev = {0};
         if (!strcmp(cmd, "key")) {
             ev.type = strcmp(b, "up") ? SDL_KEYDOWN : SDL_KEYUP;
@@ -386,6 +435,10 @@ static void RunScript(uint32_t now)
             else
                 ev.button.x = atoi(a), ev.button.y = atoi(b);
             HandleEvent(&ev);
+        } else if (!strcmp(cmd, "arm")) {
+            syncArmed = true;
+        } else if (!strcmp(cmd, "nolog")) {
+            logging = false;
         } else if (!strcmp(cmd, "shot")) {
             SaveShotFile(a);
         } else if (!strcmp(cmd, "quit")) {
@@ -454,7 +507,7 @@ uint32_t TickCount(void)
     static uint32_t last;
     Advance();
     PlatformPoll();
-    uint32_t t = NowMs() * 60 / 1000;
+    uint32_t t = Ticks();
     LogFrame(t);
     /* Spinning on an unchanged tick: rest now and then, not on every call,
      * so loops that also do work (the title effects) keep a Mac-like pace. */

@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mac.h"
-#include "platform.h"
+#include "macui.h"
+#include "../src/platform.h"
 
 enum { kUser = 0, kButton = 4, kStatic = 8, kEdit = 16, kIcon = 32, kPicture = 64 };
 

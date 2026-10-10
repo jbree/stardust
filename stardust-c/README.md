@@ -37,18 +37,30 @@ the web build).
 ### Controls
 
 As in the original: arrows or W/A/S/D move, Space or Return is magic (combine
-with Up or Down), tap a direction to turn in place, Caps Lock shows the menus
-and pauses. Menu shortcuts use ⌘, and Ctrl works as ⌘ too (browsers keep ⌘N/⌘Q
-for themselves). On the title screen, hold J+I+M.
+with Up or Down), and tapping a direction turns in place. On the title screen,
+hold J+I+M.
+
+The original's menu bar (shown with Caps Lock) is replaced by panels:
+
+- **Space** on the title screen: New Game, Start At Level…, Instructions, The Plot.
+- **Esc** during a game pauses it: Abort Game, Reset Level, Settings,
+  Instructions, The Plot. Esc again resumes.
+- **Settings**: Full / Partial / No Sound and Fast / Normal / Slow Animation,
+  with the same effects as the original's Settings menu.
+
+Panels take arrows (or W/S), Return/Space/Enter to choose, Esc to go back, or
+the mouse. Passwords are upper-cased as you type.
 
 ## Layout
 
 | Path | What |
 |---|---|
 | `src/stardust.c` | The game. One C function per original routine, each labeled with its CODE 1 offset; globals keep their A5 offsets. |
-| `src/mac.h`, `qd.c`, `menus.c`, `dialogs.c` | The Toolbox subset the game uses: GWorlds, CopyBits with mask regions, regions as bitmasks, QuickDraw's `Random`, text, the menu bar, DLOG/DITL 128–131. |
+| `src/panel.c` | The menu, settings, password and notice panels that replace the original's menu bar and dialogs. |
+| `src/mac.h`, `qd.c` | The Toolbox subset the game uses: GWorlds, CopyBits with mask regions, regions as bitmasks, QuickDraw's `Random`, text. |
 | `src/platform.c` | SDL2 host: window, events and Mac key codes, ticks, sound channels, assets, Emscripten yielding, test mode. |
 | `emu/orig.c` | Runs the original `CODE 1` under [Musashi](https://github.com/kstenerud/Musashi) (vendored in `emu/musashi`), servicing every A-line trap with the C Toolbox layer. |
+| `emu/menus.c`, `dialogs.c` | The System 7 menu bar and DLOG/DITL 128–131, needed only by the emulated original. |
 | `tests/` | `difftest.sh` (port vs original on one script), `fuzzall.sh` (random play on all 49 passworded levels), scripts and tiny test levels. |
 | `re/` | Reverse-engineering aids: `code1.asm` (compacted disassembly), `raw.py` (raw bytes), `m68kdis.py` (Capstone listing). |
 
@@ -60,6 +72,13 @@ that make the same calls see identical time. Input comes from a script, and
 `STARDUST_FRAMELOG` records a hash of the screen at every tick plus every sound
 played. A faithful translation must produce the same log as the original.
 
+Since the port's menus are not the original's, a script reaches each game
+through lines prefixed `port` or `orig`, between an `arm` and a `sync` line.
+The level load that follows restarts both programs on the same clock and
+random seed, and the logs compare everything from there: the play, level
+exits, the victory sequence, and the effect of each setting. The title screen
+and the menus themselves are not compared.
+
 ```sh
 make stardust stardust-orig
 tests/difftest.sh tests/scripts/level1.txt
@@ -70,9 +89,10 @@ tests/fuzzall.sh 5 300      # 5 seeds x 5 virtual minutes on levels 1-49
 Current results: all scripts match exactly, including 245/245 fuzz runs.
 Judging by the sounds logged, the fuzz runs exercise walking, turning, blue and
 green blocks, falls, elevators, warps, warp pockets, red blocks, fallwalls,
-landings and level exits, on levels with both heroes. The tour covers About, The
-Plot, Instructions, the J+I+M sonnet, a rejected password, sound and speed
-settings, a level exit, the victory sequence, and abort/quit confirmations.
+landings, level exits and resets, on levels with both heroes. The tour also
+drives the port's panels (The Plot, Instructions, a rejected password, every
+setting, abort) and compares play under each sound and speed setting, a level
+exit and the victory sequence.
 
 ## Quirks of the original, kept on purpose
 
@@ -90,10 +110,10 @@ settings, a level exit, the victory sequence, and abort/quit confirmations.
 
 - The victory flash ran unpaced (as fast as a 1995 Mac could draw); each step is
   now presented so it stays visible.
-- Fonts: Geneva TrueType for everything; system-font text (menus, dialogs) uses
-  Geneva drawn bold in place of Chicago.
-- The menu bar, dialogs and their framing are re-implementations, not Apple's
-  code; they follow the resources but won't be pixel-identical to System 7.
+- Fonts: Geneva TrueType for everything.
+- No menu bar or Caps Lock: the Space and Esc panels above replace the menus
+  and dialogs. The About box and Quit are gone (close the window to quit), and
+  Settings is reached from the in-game panel. The title screen shows "press
+  spacebar for menu" where the menu bar was.
 - Always the 640×480 "full screen" mode; no small-screen window, no desk
-  accessories. Dialogs restore the pixels under them instead of relying on
-  update events.
+  accessories.

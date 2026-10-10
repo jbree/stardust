@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mac.h"
-#include "platform.h"
+#include "macui.h"
+#include "../src/platform.h"
 
 enum { kBarHeight = 20, kItemHeight = 16 };
 

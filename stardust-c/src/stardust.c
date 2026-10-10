@@ -7,6 +7,7 @@
 
 #include "mac.h"
 #include "stardust.h"
+#include "panel.h"
 
 /* ------------------------------------------------------------------ */
 /* Globals, by A5 offset */
@@ -57,7 +58,6 @@ static Boolean soundUnavailable;          /* -0x3C7 */
 static SndChannelPtr channels[6];         /* -0x422 + 4*i, i = 1..5 */
 static Rect screenRect;                   /* -0x42A */
 static GWorldPtr window;                  /* -0x432 */
-static Boolean menusVisible;              /* -0x437 */
 static Boolean levelDone;                 /* -0x438 */
 static Boolean inGame;                    /* -0x439 */
 static Boolean running;                   /* -0x43A */
@@ -83,7 +83,7 @@ static Boolean KeysDown(const KeyMap k, int a, int b) { return KeyDown(k, a) || 
 
 enum { kLeftArrow = 0x7B, kRightArrow = 0x7C, kDownArrow = 0x7D, kUpArrow = 0x7E,
        kKeyA = 0x00, kKeyS = 0x01, kKeyD = 0x02, kKeyW = 0x0D, kKeyQ = 0x0C,
-       kKeyI = 0x22, kKeyJ = 0x26, kKeyM = 0x2E, kSpace = 0x31, kReturn = 0x24 };
+       kKeyI = 0x22, kKeyJ = 0x26, kKeyM = 0x2E, kSpace = 0x31, kReturn = 0x24, kEscape = 0x35 };
 
 /* The "click mouse or hit spacebar" wait that several screens share. */
 static void WaitForClickOrKey(void)
@@ -205,6 +205,22 @@ static void InitLogoRegion(void)
     DiffRgn(savedClip, logoRgn, clipMinusLogo);
 }
 
+/* Not in the original, whose menu bar sat here: the effects never reach
+ * this strip, so the hint survives them. */
+static void DrawTitleHint(void)
+{
+    static const char *hint = "press spacebar for menu";
+    RGBColor c = {0xD8F0, 0, 0};
+    RGBForeColor(&c);
+    TextFont(1);
+    TextFace(normal);
+    TextMode(srcOr);
+    TextSize(9);
+    MoveTo(320 - StringWidth(hint) / 2, 14);
+    DrawString(hint);
+    ForeColor(blackColor);
+}
+
 /* fn061E: draw the logo frames and reset the title effects. */
 static void InitTitle(void)
 {
@@ -224,6 +240,7 @@ static void InitTitle(void)
     SetRect(&logoDst, 84, 100, logoRects[1].right + 84 - logoRects[1].left,
             logoRects[1].bottom + 100 - logoRects[1].top);
     CopyBits(levelGW, backGW, &logoRects[1], &logoDst, srcCopy, NULL);
+    DrawTitleHint();
     SetGWorld(window);
 
     titleMode = 1;
@@ -256,10 +273,9 @@ static void RestartTitle(void)
     BackColor(whiteColor);
     PaintRect(&screenRect);
     CopyBits(levelGW, backGW, &logoRects[1], &logoDst, srcCopy, NULL);
+    DrawTitleHint();
     SetGWorld(window);
-    Rect r;
-    SetRect(&r, 0, 20, 640, 480);
-    CopyBits(backGW, window, &r, &r, srcCopy, NULL);
+    CopyBits(backGW, window, &screenRect, &screenRect, srcCopy, NULL);
     for (int i = 1; i <= 5; i++) {
         Bouncer *b = &bouncers[i];
         b->pos1 = (Point){240, 320};
@@ -418,27 +434,6 @@ static void TitleStep(void)
 /* ------------------------------------------------------------------ */
 /* Dialogs */
 
-/* export 6 (fn0F12): user item that outlines the default button. */
-static void OutlineDefaultButton(DialogPtr d, int item)
-{
-    (void)item;
-    Rect r;
-    GetDialogItemRect(d, 1, &r);
-    GWorldPtr save = thePort;
-    SetGWorld(DialogPort(d));
-    int16_t penW = thePort->penW, penH = thePort->penH;
-    Boolean penGray = thePort->penGray;
-    PenNormal();
-    InsetRect(&r, -4, -4);
-    FrameRoundRect(&r, 16, 16);
-    int corner = (r.bottom - r.top) / 2 + 2;
-    thePort->penGray = false; /* PenPat(qd.black) */
-    PenSize(3, 3);
-    FrameRoundRect(&r, corner, corner);
-    thePort->penW = penW, thePort->penH = penH, thePort->penGray = penGray;
-    SetGWorld(save);
-}
-
 /* fn1122: passwords are stored with A..Z mirrored (Atbash). */
 static void Atbash(const char *in, char *out)
 {
@@ -452,33 +447,21 @@ static void Atbash(const char *in, char *out)
 static int AskForPassword(void)
 {
     ShowCursorOnce();
-    DialogPtr d = GetNewDialog(130);
-    SetDialogItemProc(d, 6, OutlineDefaultButton);
-    int item = 0;
-    while (item != 2 && item != 1)
-        ModalDialog(&item);
-    if (item == 2) {
-        DisposeDialog(d);
+    char typed[64] = "", encoded[64];
+    if (!PanelAskText("Start At Level", "Enter the password of the level where you want to begin.", typed,
+                      sizeof typed))
         return 0;
-    }
-    char typed[256], encoded[256];
-    GetDialogItemText(d, 3, typed, sizeof typed);
     Atbash(typed, encoded);
-    if (!encoded[0]) {
-        DisposeDialog(d);
+    if (!encoded[0])
         return 0;
-    }
-    DisposeDialog(d);
     int found = 0;
     for (int i = 1; i <= 50; i++)
         if (strcmp(passwords[i], encoded) == 0)
             found = i;
     if (found == 0) {
-        d = GetNewDialog(131);
-        DrawDialog(d);
+        PanelMessageOpen("Your password is not valid.");
         PlaySound(105);
-        WaitForClickOrKey();
-        DisposeDialog(d);
+        PanelMessageWait();
     }
     return found;
 }
@@ -487,13 +470,10 @@ static int AskForPassword(void)
 static Boolean ConfirmEndGame(void)
 {
     ShowCursorOnce();
-    DialogPtr d = GetNewDialog(129);
-    SetDialogItemProc(d, 5, OutlineDefaultButton);
-    int item = 0;
-    while (item != 2 && item != 1)
-        ModalDialog(&item);
-    DisposeDialog(d);
-    return item == 1;
+    static const PanelItem items[] = {{"End Game", kPanelAction, false, false},
+                                      {"Keep Playing", kPanelAction, false, false}};
+    int sel = 0;
+    return PanelChoose("End this game?", "Esc: keep playing", items, 2, &sel) == 0;
 }
 
 /* fn11FE */
@@ -567,7 +547,6 @@ static void ShowLevelTitle(int lvl, Boolean newGame)
     WaitForClickOrKey();
     ForeColor(blackColor);
     BackColor(whiteColor);
-    menusVisible = false;
 }
 
 /* from + (to - from) * i / div in THINK Pascal 16-bit Integer arithmetic:
@@ -1408,10 +1387,9 @@ static void LoadHeroGraphics(void)
 /* fn4A20: one tick of whatever is on screen. */
 static void Tick(void)
 {
-    if (menusVisible) {
+    if (!inGame) {
         ShowCursorOnce();
-        if (!inGame)
-            TitleStep();
+        TitleStep();
         return;
     }
     HideCursorOnce();
@@ -1523,48 +1501,29 @@ static void InitGraphics(void)
 /* ------------------------------------------------------------------ */
 /* Screen and menus */
 
-static void EnableMenus(void);
-
 /* fn4F10 */
 static void SayGoodbye(void) { PlaySound(112); }
 
 /* fn4F1A */
 static void RedrawScreen(void)
 {
-    if (menusVisible) {
-        EnableMenus();
-        DrawMenuBar();
-    }
-    if (inGame) {
+    if (inGame)
         screenShown = false;
-    } else {
-        Rect r;
-        SetRect(&r, 0, 20, 640, 480);
-        CopyBits(backGW, window, &r, &r, srcCopy, NULL);
-    }
+    else
+        CopyBits(backGW, window, &screenRect, &screenRect, srcCopy, NULL);
 }
 
 /* fn4F6E */
 static void RestoreScreen(void)
 {
-    Rect r;
-    SetRect(&r, 0, 20, 640, 480);
-    CopyBits(backGW, window, &r, &r, srcCopy, NULL);
+    CopyBits(backGW, window, &screenRect, &screenRect, srcCopy, NULL);
     screenShown = false;
-    if (menusVisible)
-        DrawMenuBar();
 }
 
-/* fn4FB4: idle time. Caps Lock (or being on the title screen) shows the menus. */
+/* fn4FB4: idle time. */
 static void Idle(const EventRecord *ev)
 {
-    Boolean show = (ev->modifiers & alphaLock) != 0 || !inGame;
-    if (show != menusVisible) {
-        menusVisible = show;
-        if (menusVisible)
-            HiliteMenu(0);
-        RedrawScreen();
-    }
+    (void)ev;
     if (levelDone) {
         if (heroState == kWon) {
             VictoryFlash();
@@ -1576,6 +1535,7 @@ static void Idle(const EventRecord *ev)
             levelDone = false;
             InitTitle();
             RedrawScreen();
+            FlushEvents(everyEvent, 0); /* the key that closed the picture mustn't open the menu */
         } else {
             LevelWipe();
             LoadLevel(level + 1, true, false);
@@ -1583,28 +1543,6 @@ static void Idle(const EventRecord *ev)
     } else {
         Tick();
     }
-}
-
-static void Credits(void);
-static void DoMenuCommand(int32_t result);
-
-/* fn50A8 */
-static void KeyPressed(const EventRecord *ev)
-{
-    char ch = (char)(ev->message & charCodeMask);
-    if (ev->modifiers & cmdKey) {
-        EnableMenus();
-        DoMenuCommand(MenuKey(ch));
-        if (!running)
-            return;
-        RedrawScreen();
-    }
-    if (inGame)
-        return;
-    KeyMap k;
-    GetKeys(k);
-    if (KeyDown(k, kKeyJ) && KeyDown(k, kKeyI) && KeyDown(k, kKeyM))
-        Credits();
 }
 
 /* fn5136: one centered line of the credits, with a shadow. */
@@ -1659,156 +1597,150 @@ static void Credits(void)
     RestoreScreen();
 }
 
-/* fn55EA */
-static void CheckSetting(int item, Boolean checked) { CheckItem(GetMenuHandle(3), item, checked); }
+/* The menu bar of the original is replaced by two panels: Space on the
+ * title screen, Escape during a game. Their items do what the menu
+ * commands did (fn582C). */
 
-/* fn5608: menu items for the current mode, then DrawMenuBar. */
-static void EnableMenus(void)
+static void SettingsMenu(void)
 {
-    EnableItem(GetMenuHandle(1), 0);
-    EnableItem(GetMenuHandle(2), 0);
-    if (inGame) {
-        DisableItem(GetMenuHandle(2), 1);
-        EnableItem(GetMenuHandle(2), 2);
-        EnableItem(GetMenuHandle(2), 5);
-        DisableItem(GetMenuHandle(2), 4);
-        DisableItem(GetMenuHandle(4), 0);
-        DisableItem(GetMenuHandle(4), 1);
-        DisableItem(GetMenuHandle(4), 3);
-        DisableItem(GetMenuHandle(4), 4);
-    } else {
-        EnableItem(GetMenuHandle(2), 1);
-        DisableItem(GetMenuHandle(2), 2);
-        DisableItem(GetMenuHandle(2), 5);
-        EnableItem(GetMenuHandle(2), 4);
-        EnableItem(GetMenuHandle(4), 0);
-        EnableItem(GetMenuHandle(4), 1);
-        EnableItem(GetMenuHandle(4), 3);
-        EnableItem(GetMenuHandle(4), 4);
-    }
-    if (soundUnavailable) {
-        DisableItem(GetMenuHandle(3), 1);
-        DisableItem(GetMenuHandle(3), 2);
-        DisableItem(GetMenuHandle(3), 3);
-    } else {
-        EnableItem(GetMenuHandle(3), 1);
-        EnableItem(GetMenuHandle(3), 2);
-        EnableItem(GetMenuHandle(3), 3);
-    }
-    EnableItem(GetMenuHandle(3), 0);
-    EnableItem(GetMenuHandle(3), 5);
-    EnableItem(GetMenuHandle(3), 6);
-    EnableItem(GetMenuHandle(3), 7);
-    CheckSetting(1, soundOn && !partialSound);
-    CheckSetting(2, soundOn && partialSound);
-    CheckSetting(3, !soundOn);
-    CheckSetting(5, speed == 0);
-    CheckSetting(6, speed == 2);
-    CheckSetting(7, speed == 1);
-    EnableItem(GetMenuHandle(2), 7);
-    DrawMenuBar();
-}
-
-/* fn5B14 */
-static void StopRunning(void) { running = false; }
-
-/* fn582C */
-static void DoMenuCommand(int32_t result)
-{
-    int menu = (int)(result >> 16), item = (int)(result & 0xFFFF);
-    if (menusVisible) {
-        EnableMenus();
-        DrawMenuBar();
-        HiliteMenu(0);
-    }
-    switch (menu) {
-    case 1: /* Apple */
-        if (item == 1) {
-            DialogPtr d = GetNewDialog(128);
-            DrawDialog(d);
-            PlaySound(103);
-            while (!Button())
-                FlushEvents(everyEvent, 0);
-            PlaySound(102);
-            DisposeDialog(d);
-            RestoreScreen();
-        }
-        /* Other items were desk accessories. */
-        break;
-    case 2: /* Game */
-        switch (item) {
-        case 1: /* New Game */
-            inGame = true;
-            LoadLevel(1, true, true);
-            break;
-        case 2: /* Abort Game */
-            if (ConfirmEndGame()) {
-                inGame = false;
-                InitTitle();
-                RedrawScreen();
-            }
-            break;
-        case 4: { /* Start At Level... */
-            int lvl = AskForPassword();
-            if (lvl > 0) {
-                level = (int16_t)lvl;
-                inGame = true;
-                LoadLevel(level, true, true);
-            }
-            RedrawScreen();
-            break;
-        }
-        case 5: /* Reset Level */
-            if (inGame)
-                LoadLevel(level, false, false);
-            break;
-        case 7: /* Quit */
-            if (inGame && !ConfirmEndGame()) {
-                HiliteMenu(0);
-                return;
-            }
-            inGame = false;
-            StopRunning();
-            break;
-        }
-        break;
-    case 3: /* Settings */
-        switch (item) {
+    int sel = 0;
+    for (;;) {
+        Boolean noSnd = soundUnavailable;
+        PanelItem items[] = {
+            {"Sound", kPanelHeading, false, false},
+            {"Full Sound", kPanelChoice, soundOn && !partialSound, noSnd},
+            {"Partial Sound", kPanelChoice, soundOn && partialSound, noSnd},
+            {"No Sound", kPanelChoice, !soundOn, noSnd},
+            {"Animation", kPanelHeading, false, false},
+            {"Fast", kPanelChoice, speed == 0, false},
+            {"Normal", kPanelChoice, speed == 2, false},
+            {"Slow", kPanelChoice, speed == 1, false},
+            {"Done", kPanelAction, false, false},
+        };
+        switch (PanelChoose("Settings", "Esc: back", items, 9, &sel)) {
         case 1: soundOn = true, partialSound = false; break;
         case 2: soundOn = true, partialSound = true; break;
         case 3: soundOn = false, partialSound = false; break;
         case 5: speed = 0; break;
         case 6: speed = 2; break;
         case 7: speed = 1; break;
+        default: return;
         }
-        break;
-    case 4: /* Information */
-        ShowInfoPicture(item);
-        RestoreScreen();
-        break;
-    }
-    if (menusVisible) {
-        EnableMenus();
-        DrawMenuBar();
-        HiliteMenu(0);
     }
 }
 
-/* fn5A36 */
+/* Shows an information picture, then puts back what was under the menu. */
+static void ShowInfoOver(GWorldPtr under, int n)
+{
+    Rect bar;
+    SetRect(&bar, 0, 0, 640, 20); /* where the menu bar was */
+    SetGWorld(window);
+    ForeColor(blackColor);
+    PaintRect(&bar);
+    ShowInfoPicture(n);
+    FlushEvents(everyEvent, 0); /* the key that closed it is still queued */
+    CopyBits(under, window, &screenRect, &screenRect, srcCopy, NULL);
+}
+
+static void TitleMenu(void)
+{
+    static const PanelItem items[] = {
+        {"New Game", kPanelAction, false, false},
+        {"Start At Level...", kPanelAction, false, false},
+        {"Instructions", kPanelAction, false, false},
+        {"The Plot", kPanelAction, false, false},
+    };
+    GWorldPtr under = NewGWorld(640, 480);
+    CopyBits(window, under, &screenRect, &screenRect, srcCopy, NULL);
+    int sel = 0, lvl;
+    for (Boolean done = false; !done;) {
+        ShowCursorOnce();
+        switch (PanelChoose("Stardust", "Esc: close", items, 4, &sel)) {
+        case 0:
+            inGame = true;
+            LoadLevel(1, true, true);
+            done = true;
+            break;
+        case 1:
+            lvl = AskForPassword();
+            if (lvl > 0) {
+                level = (int16_t)lvl;
+                inGame = true;
+                LoadLevel(level, true, true);
+                done = true;
+            }
+            break;
+        case 2: ShowInfoOver(under, 3); break;
+        case 3: ShowInfoOver(under, 1); break;
+        default: done = true; break;
+        }
+    }
+    DisposeGWorld(under);
+    SetGWorld(window);
+}
+
+static void GameMenu(void)
+{
+    static const PanelItem items[] = {
+        {"Abort Game", kPanelAction, false, false},
+        {"Reset Level", kPanelAction, false, false},
+        {"Settings", kPanelAction, false, false},
+        {"Instructions", kPanelAction, false, false},
+        {"The Plot", kPanelAction, false, false},
+    };
+    GWorldPtr under = NewGWorld(640, 480);
+    CopyBits(window, under, &screenRect, &screenRect, srcCopy, NULL);
+    int sel = 0;
+    for (Boolean done = false; !done;) {
+        ShowCursorOnce();
+        switch (PanelChoose("Paused", "Esc: resume", items, 5, &sel)) {
+        case 0:
+            if (ConfirmEndGame()) {
+                inGame = false;
+                InitTitle();
+                done = true;
+            }
+            break;
+        case 1:
+            LoadLevel(level, false, false);
+            done = true;
+            break;
+        case 2: SettingsMenu(); break;
+        case 3: ShowInfoOver(under, 3); break;
+        case 4: ShowInfoOver(under, 1); break;
+        default: done = true; break;
+        }
+    }
+    DisposeGWorld(under);
+    SetGWorld(window);
+}
+
+/* fn50A8 */
+static void KeyPressed(const EventRecord *ev)
+{
+    int key = (int)(ev->message >> 8 & 0xFF);
+    if (ev->what == keyDown && (inGame ? key == kEscape : key == kSpace)) {
+        if (inGame)
+            GameMenu();
+        else
+            TitleMenu();
+        RedrawScreen();
+        return;
+    }
+    if (inGame)
+        return;
+    KeyMap k;
+    GetKeys(k);
+    if (KeyDown(k, kKeyJ) && KeyDown(k, kKeyI) && KeyDown(k, kKeyM))
+        Credits();
+}
+
+/* fn5A36: a click on the title screen switches its effect. */
 static void MouseDown(const EventRecord *ev)
 {
-    switch (FindWindow(ev->where)) {
-    case inMenuBar:
-        if (menusVisible) {
-            EnableMenus();
-            DoMenuCommand(MenuSelect(ev->where));
-        }
-        break;
-    case inContent:
-        if (!inGame && menusVisible)
-            RestartTitle();
-        break;
-    }
+    (void)ev;
+    if (!inGame)
+        RestartTitle();
 }
 
 /* fn5B46 */
@@ -1821,8 +1753,6 @@ static void InitApp(void)
     ForeColor(blackColor);
     BackColor(whiteColor);
     SetRect(&screenRect, 0, 0, 640, 480);
-    InstallMenuBar();
-    menusVisible = true;
     backGW = NewGWorld(640, 480);
     levelGW = NewGWorld(640, 480);
     SetGWorld(window);

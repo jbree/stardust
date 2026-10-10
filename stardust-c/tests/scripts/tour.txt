@@ -1,111 +1,241 @@
-# About box (apple menu)
-7000 mdown 20 10
-7100 mmove 40 28
-7200 mup 40 28
-12000 shot /tmp/claude-sd/tour_about.bmp
-12100 click 300 300
-# The Plot, Simple Instructions
-15000 mdown 200 10
-15100 mmove 200 28
-15200 mup 200 28
-19000 shot /tmp/claude-sd/tour_plot.bmp
-19100 key Space down
-19200 key Space up
-21000 mdown 200 10
-21100 mmove 200 60
-21200 mup 200 60
-25000 key Space down
-25100 key Space up
+# Run with STARDUST_LEVELS=$PWD/tests/levels. Menus differ between the port
+# and the original, so each reaches a game its own way; logging resumes at
+# each sync and covers the play in between.
+0 nolog
+# the port's title menu: The Plot, Instructions, a rejected password
+port 8000 key Space down
+port 8060 key Space up
+port 8200 key Down down
+port 8260 key Down up
+port 8400 key Down down
+port 8460 key Down up
+port 8600 key Down down
+port 8660 key Down up
+port 8800 key Return down
+port 8860 key Return up
+port 12000 shot /tmp/claude-sd/tour_plot.bmp
+port 20000 key Space down
+port 20060 key Space up
+port 20200 key Up down
+port 20260 key Up up
+port 20400 key Return down
+port 20460 key Return up
+port 24000 shot /tmp/claude-sd/tour_instructions.bmp
+port 32000 key Space down
+port 32060 key Space up
+port 32200 key Up down
+port 32260 key Up up
+port 32400 key Return down
+port 32460 key Return up
+port 32600 key X down
+port 32660 key X up
+port 32800 key Return down
+port 32860 key Return up
+port 35500 shot /tmp/claude-sd/tour_badpw.bmp
+port 37000 key Space down
+port 37060 key Space up
+port 37200 key Escape down
+port 37260 key Escape up
 # J-I-M credits
-27000 key J down
-27010 key I down
-27020 key M down
-27100 key M up
-27110 key I up
-27120 key J up
-32000 shot /tmp/claude-sd/tour_credits.bmp
-32100 key Space down
-32200 key Space up
-# a rejected password
-34000 mod cmd on
-34010 key O down
-34020 key O up
-34030 mod cmd off
-35000 key X down
-35050 key X up
-35100 key Return down
-35150 key Return up
-37000 shot /tmp/claude-sd/tour_badpw.bmp
-38000 key Space down
-38100 key Space up
-# partial sound, slow animation, new game
-40000 mod cmd on
-40010 key 2 down
-40020 key 2 up
-40030 key 6 down
-40040 key 6 up
-40050 key N down
-40060 key N up
-40070 mod cmd off
-46000 key Space down
-46100 key Space up
-50000 key Right down
-52000 key Right up
-52500 key Up down
-54000 key Up up
-57000 shot /tmp/claude-sd/tour_wipe.bmp
-62000 key Space down
-62100 key Space up
-66000 key Left down
-66050 key Left up
-67000 key Left down
-72000 key Left up
-74000 shot /tmp/claude-sd/tour_victory1.bmp
-82000 shot /tmp/claude-sd/tour_victory2.bmp
-84000 key Space down
-84100 key Space up
-# no sound, fast, new game then abort
-87000 mod cmd on
-87010 key 3 down
-87020 key 3 up
-87030 key 4 down
-87040 key 4 up
-87050 key N down
-87060 key N up
-87070 mod cmd off
-92000 key Space down
-92100 key Space up
-94000 key Down down
-94500 key Space down
-94600 key Space up
-95000 key Down up
-96000 mod cmd on
-96010 key A down
-96020 key A up
-96030 mod cmd off
-97000 shot /tmp/claude-sd/tour_abort.bmp
-97100 key Return down
-97200 key Return up
-# full sound, normal; quit: cancel once, then OK
-99000 mod cmd on
-99010 key 1 down
-99020 key 1 up
-99030 key 5 down
-99040 key 5 up
-99050 key N down
-99060 key N up
-99070 mod cmd off
-104000 key Space down
-104100 key Space up
-106000 mod cmd on
-106010 key Q down
-106020 key Q up
-106030 mod cmd off
-107000 click 260 186
-109000 mod cmd on
-109010 key Q down
-109020 key Q up
-109030 mod cmd off
-110000 key Return down
-110100 key Return up
-124000 quit
+40000 key J down
+40010 key I down
+40020 key M down
+40100 key M up
+40110 key I up
+40120 key J up
+45000 shot /tmp/claude-sd/tour_credits.bmp
+45100 key Space down
+45200 key Space up
+# new game
+47000 arm
+port 47000 key Space down
+port 47060 key Space up
+port 49000 key Return down
+port 49060 key Return up
+orig 47000 mod cmd on
+orig 47010 key N down
+orig 47015 key N up
+orig 47020 mod cmd off
+sync
+6000 key Space down
+6100 key Space up
+# partial sound, slow animation, reset level
+8000 arm
+port 8000 key Escape down
+port 8060 key Escape up
+port 8300 key Down down
+port 8360 key Down up
+port 8600 key Down down
+port 8660 key Down up
+port 8900 key Return down
+port 8960 key Return up
+port 9200 key Down down
+port 9260 key Down up
+port 9500 key Return down
+port 9560 key Return up
+port 9800 key Down down
+port 9860 key Down up
+port 10100 key Down down
+port 10160 key Down up
+port 10400 key Down down
+port 10460 key Down up
+port 10700 key Down down
+port 10760 key Down up
+port 11000 key Return down
+port 11060 key Return up
+port 11300 key Escape down
+port 11360 key Escape up
+port 11600 key Up down
+port 11660 key Up up
+port 11900 key Return down
+port 11960 key Return up
+port 12500 shot /tmp/claude-sd/tour_settings.bmp
+orig 8000 mod cmd on
+orig 8010 key 2 down
+orig 8015 key 2 up
+orig 8020 key 6 down
+orig 8025 key 6 up
+orig 8030 key R down
+orig 8035 key R up
+orig 8040 mod cmd off
+sync
+3000 key Space down
+3100 key Space up
+7000 key Right down
+9000 key Right up
+9500 key Up down
+11000 key Up up
+14000 shot /tmp/claude-sd/tour_wipe.bmp
+19000 key Space down
+19100 key Space up
+23000 key Left down
+23050 key Left up
+24000 key Left down
+29000 key Left up
+31000 shot /tmp/claude-sd/tour_victory1.bmp
+39000 shot /tmp/claude-sd/tour_victory2.bmp
+41000 nolog
+41000 key Space down
+41100 key Space up
+# no sound, fast animation
+44000 arm
+port 44000 key Space down
+port 44060 key Space up
+port 46000 key Return down
+port 46060 key Return up
+orig 44000 mod cmd on
+orig 44010 key N down
+orig 44015 key N up
+orig 44020 mod cmd off
+sync
+6000 key Space down
+6100 key Space up
+8000 arm
+port 8000 key Escape down
+port 8060 key Escape up
+port 8300 key Down down
+port 8360 key Down up
+port 8600 key Down down
+port 8660 key Down up
+port 8900 key Return down
+port 8960 key Return up
+port 9200 key Down down
+port 9260 key Down up
+port 9500 key Down down
+port 9560 key Down up
+port 9800 key Return down
+port 9860 key Return up
+port 10100 key Down down
+port 10160 key Down up
+port 10400 key Return down
+port 10460 key Return up
+port 10700 key Escape down
+port 10760 key Escape up
+port 11000 key Up down
+port 11060 key Up up
+port 11300 key Return down
+port 11360 key Return up
+orig 8000 mod cmd on
+orig 8010 key 3 down
+orig 8015 key 3 up
+orig 8020 key 4 down
+orig 8025 key 4 up
+orig 8030 key R down
+orig 8035 key R up
+orig 8040 mod cmd off
+sync
+3000 key Space down
+3100 key Space up
+5000 key Down down
+5500 key Space down
+5600 key Space up
+6000 key Down up
+# abort the game
+8000 nolog
+port 8000 key Escape down
+port 8060 key Escape up
+port 8200 key Return down
+port 8260 key Return up
+port 9000 shot /tmp/claude-sd/tour_abort.bmp
+port 9100 key Return down
+port 9160 key Return up
+orig 8000 mod cmd on
+orig 8010 key A down
+orig 8015 key A up
+orig 8020 mod cmd off
+orig 9100 key Return down
+orig 9200 key Return up
+# full sound, normal animation
+12000 arm
+port 12000 key Space down
+port 12060 key Space up
+port 14000 key Return down
+port 14060 key Return up
+orig 12000 mod cmd on
+orig 12010 key N down
+orig 12015 key N up
+orig 12020 mod cmd off
+sync
+6000 key Space down
+6100 key Space up
+8000 arm
+port 8000 key Escape down
+port 8060 key Escape up
+port 8300 key Down down
+port 8360 key Down up
+port 8600 key Down down
+port 8660 key Down up
+port 8900 key Return down
+port 8960 key Return up
+port 9200 key Return down
+port 9260 key Return up
+port 9500 key Down down
+port 9560 key Down up
+port 9800 key Down down
+port 9860 key Down up
+port 10100 key Down down
+port 10160 key Down up
+port 10400 key Down down
+port 10460 key Down up
+port 10700 key Return down
+port 10760 key Return up
+port 11000 key Escape down
+port 11060 key Escape up
+port 11300 key Up down
+port 11360 key Up up
+port 11600 key Return down
+port 11660 key Return up
+orig 8000 mod cmd on
+orig 8010 key 1 down
+orig 8015 key 1 up
+orig 8020 key 5 down
+orig 8025 key 5 up
+orig 8030 key R down
+orig 8035 key R up
+orig 8040 mod cmd off
+sync
+3000 key Space down
+3100 key Space up
+5000 key Right down
+7000 key Right up
+10000 quit

@@ -12,5 +12,9 @@ void PlatformPoll(void);
 void PlatformIdle(void);
 /* Test-mode event log (sounds, traps). */
 void PlatformLog(const char *fmt, int value);
+/* Set by the emulator harness: scripts can address each program. */
+extern Boolean platformIsOriginal;
+/* Times the clock and random seed were reset for a script "sync". */
+int PlatformSyncs(void);
 
 #endif

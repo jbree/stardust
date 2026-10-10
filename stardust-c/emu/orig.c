@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../src/mac.h"
+#include "macui.h"
 #include "../src/platform.h"
 #include "musashi/m68k.h"
 
@@ -170,14 +170,19 @@ static uint32_t NewPort(GWorldPtr gw)
 /* ------------------------------------------------------------------ */
 /* Resources */
 
+static uint32_t qdGlobals;
+
 static uint32_t GetResourceTrap(uint32_t type, int id)
 {
     char name[32];
     long size;
     unsigned char *data;
     switch (type) {
-    case 0x54455854: /* 'TEXT' */
+    case 0x54455854: { /* 'TEXT' */
+        int syncs = PlatformSyncs();
         data = (unsigned char *)GetTextResource(id);
+        if (PlatformSyncs() != syncs)
+            W32(qdGlobals - 126, (uint32_t)randSeed); /* the script reset the seed */
         if (!data)
             return 0;
         size = (long)strlen((char *)data);
@@ -185,6 +190,7 @@ static uint32_t GetResourceTrap(uint32_t type, int id)
             if (data[i] == '\n')
                 data[i] = '\r';
         break;
+    }
     case 0x4C535020: /* 'LSP ': THINK runtime data, only read on a runtime error */
         (void)name;
         data = calloc(1, 18), size = 18;
@@ -721,6 +727,7 @@ int main(int argc, char **argv)
     }
     W8(0x260, 7); /* SdVolume */
 
+    platformIsOriginal = true;
     if (PlatformInit() != 0)
         return 1;
     m68k_init();

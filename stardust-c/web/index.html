@@ -23,7 +23,7 @@
     <div id="start">Click to play Stardust<small id="status">loading&hellip;</small></div>
   </div>
   <p>Arrows or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &middot; <kbd>Space</kbd>/<kbd>Return</kbd> is magic &middot;
-     <kbd>Caps Lock</kbd> shows the menus &middot; <kbd>Ctrl</kbd> works as <kbd>&#8984;</kbd> for menu shortcuts</p>
+     <kbd>Space</kbd> on the title screen opens the menu &middot; <kbd>Esc</kbd> pauses a game</p>
 </main>
 <script>
   var canvas = document.getElementById('canvas');
@@ -31,15 +31,12 @@
   var ready = false;
   var Module = {
     canvas: canvas,
-    capsLock: false,
     setStatus: function (s) { document.getElementById('status').textContent = s || 'ready'; },
     onRuntimeInitialized: function () { ready = true; Module.setStatus('ready'); },
   };
-  function trackCaps(e) { if (e.getModifierState) Module.capsLock = e.getModifierState('CapsLock'); }
-  ['keydown', 'keyup', 'mousedown', 'mousemove'].forEach(function (t) { window.addEventListener(t, trackCaps, true); });
-  // Keep the page from scrolling and Ctrl shortcuts from reaching the browser.
+  // Keep the page from scrolling.
   window.addEventListener('keydown', function (e) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Backspace'].indexOf(e.key) >= 0 || e.ctrlKey) e.preventDefault();
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'Backspace'].indexOf(e.key) >= 0) e.preventDefault();
   });
   start.addEventListener('click', function () {
     if (!ready) return;
