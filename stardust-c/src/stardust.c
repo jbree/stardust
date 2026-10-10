@@ -491,7 +491,7 @@ static Boolean ConfirmEndGame(void)
     static const PanelItem items[] = {{"End Game", kPanelAction, false, false},
                                       {"Keep Playing", kPanelAction, false, false}};
     int sel = 0;
-    return PanelChoose("End this game?", "Esc: keep playing", items, 2, &sel) == 0;
+    return PanelChoose("End this game?", items, 2, &sel) == 0;
 }
 
 /* fn11FE */
@@ -1642,7 +1642,7 @@ static void SettingsMenu(void)
             {"Slow", kPanelChoice, speed == 1, false},
             {"Done", kPanelAction, false, false},
         };
-        switch (PanelChoose("Settings", "Esc: back", items, 9, &sel)) {
+        switch (PanelChoose("Settings", items, 9, &sel)) {
         case 1: soundOn = true, partialSound = false; break;
         case 2: soundOn = true, partialSound = true; break;
         case 3: soundOn = false, partialSound = false; break;
@@ -1699,19 +1699,20 @@ static void TitleMenu(void)
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
+        {"", kPanelDivider, false, false},
         {"About Stardust", kPanelAction, false, false},
     };
     int sel = 0, start = 0;
     PanelBegin();
     while (start == 0) {
         ShowCursorOnce();
-        switch (PanelChoose("Stardust", "Esc: close", items, 7, &sel)) {
+        switch (PanelChoose("Stardust", items, 8, &sel)) {
         case 0: start = 1; break;
         case 1: start = AskForPassword(); break;
         case 3: SettingsMenu(); break;
         case 4: ShowInfoPicture(3); break;
         case 5: ShowInfoPicture(1); break;
-        case 6: ShowAbout(); break;
+        case 7: ShowAbout(); break;
         default: start = -1; break;
         }
     }
@@ -1732,6 +1733,7 @@ static void GameMenu(void)
         {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
+        {"", kPanelDivider, false, false},
         {"About Stardust", kPanelAction, false, false},
     };
     enum { kStay, kResume, kAbort, kReset } action = kStay;
@@ -1739,7 +1741,7 @@ static void GameMenu(void)
     PanelBegin();
     while (action == kStay) {
         ShowCursorOnce();
-        switch (PanelChoose("Paused", "Esc: resume", items, 7, &sel)) {
+        switch (PanelChoose("Paused", items, 8, &sel)) {
         case 0: action = kReset; break;
         case 1:
             if (ConfirmEndGame())
@@ -1748,7 +1750,7 @@ static void GameMenu(void)
         case 3: SettingsMenu(); break;
         case 4: ShowInfoPicture(3); break;
         case 5: ShowInfoPicture(1); break;
-        case 6: ShowAbout(); break;
+        case 7: ShowAbout(); break;
         default: action = kResume; break;
         }
     }

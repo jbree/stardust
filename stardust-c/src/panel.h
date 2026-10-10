@@ -21,7 +21,7 @@ void PanelEnd(void);
 
 /* Returns the chosen item's index, or -1 for Escape or a click outside.
  * *sel is the highlighted item, kept so a re-opened panel stays in place. */
-int PanelChoose(const char *title, const char *hint, const PanelItem *items, int n, int *sel);
+int PanelChoose(const char *title, const PanelItem *items, int n, int *sel);
 
 /* A text field; letters are upper-cased as typed. Returns false if cancelled. */
 Boolean PanelAskText(const char *title, const char *prompt, char *buf, int size);

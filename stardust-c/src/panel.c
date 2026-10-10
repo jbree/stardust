@@ -6,7 +6,7 @@
 #include "panel.h"
 #include "platform.h"
 
-enum { kPad = 24, kTitleH = 52, kRowH = 30, kHeadH = 28, kDividerH = 13, kHintH = 34, kMinW = 300 };
+enum { kPad = 24, kTitleH = 52, kRowH = 30, kHeadH = 28, kDividerH = 13, kBottom = 14, kMinW = 300 };
 enum { kKeyS = 0x01, kKeyW = 0x0D, kReturn = 0x24, kSpace = 0x31, kBackspace = 0x33, kEscape = 0x35,
        kEnter = 0x4C, kDownArrow = 0x7D, kUpArrow = 0x7E };
 
@@ -14,7 +14,7 @@ enum { kKeyS = 0x01, kKeyW = 0x0D, kReturn = 0x24, kSpace = 0x31, kBackspace = 0
  * written straight to the screen. */
 static const RGBColor kWhite = {0xFFFF, 0xFFFF, 0xFFFF}, kText = {0xCCCC, 0xCCCC, 0xCCCC},
                       kHot = {0xFFFF, 0xFFFF, 0x6666}, kDim = {0x5555, 0x5555, 0x5555},
-                      kHeading = {0x9999, 0x9999, 0xFFFF}, kHint = {0x8888, 0x8888, 0x8888};
+                      kHeading = {0x9999, 0x9999, 0xFFFF};
 enum { kFill = 0x000022, kBorder = 0x6666FF, kBar = 0x333399, kField = 0x000000 };
 
 static struct {
@@ -183,17 +183,11 @@ static void DrawTitle(const Rect *box, const char *title)
     Fill(&rule, kBorder);
 }
 
-static void DrawHint(const Rect *box, const char *hint)
-{
-    SetText(10, normal, &kHint);
-    Centered(box, hint, box->bottom - 14);
-}
-
 /* ------------------------------------------------------------------ */
 /* Menus */
 
 typedef struct {
-    const char *title, *hint;
+    const char *title;
     const PanelItem *items;
     int n;
     Rect box;
@@ -226,11 +220,8 @@ static void Layout(Menu *m)
         if (iw > w)
             w = iw;
     }
-    SetText(10, normal, &kHint);
-    if (StringWidth(m->hint) > w)
-        w = StringWidth(m->hint);
     w += 2 * kPad;
-    m->box = CenteredBox(w < kMinW ? kMinW : w, h + kHintH);
+    m->box = CenteredBox(w < kMinW ? kMinW : w, h + kBottom);
     for (int i = 0; i < m->n; i++)
         m->top[i] += m->box.top;
 }
@@ -272,7 +263,6 @@ static void DrawMenu(const Menu *m, int sel)
             Centered(&m->box, it->label, y + 21);
         }
     }
-    DrawHint(&m->box, m->hint);
 }
 
 static int RowAt(const Menu *m, Point p)
@@ -295,9 +285,9 @@ static int Step(const Menu *m, int sel, int d)
     return sel;
 }
 
-int PanelChoose(const char *title, const char *hint, const PanelItem *items, int n, int *sel)
+int PanelChoose(const char *title, const PanelItem *items, int n, int *sel)
 {
-    Menu m = {title, hint, items, n < 32 ? n : 32, {0, 0, 0, 0}, {0}};
+    Menu m = {title, items, n < 32 ? n : 32, {0, 0, 0, 0}, {0}};
     Open();
     Layout(&m);
     if (*sel < 0 || *sel >= m.n || !Selectable(&items[*sel]))
@@ -381,7 +371,6 @@ static void DrawAsk(const Ask *a, const char *title, const char *prompt, const c
     }
     DrawButton(&a->cancel, "Cancel", false);
     DrawButton(&a->ok, "OK", true);
-    DrawHint(&a->box, "Return: OK      Esc: cancel");
 }
 
 Boolean PanelAskText(const char *title, const char *prompt, char *buf, int size)
@@ -391,7 +380,7 @@ Boolean PanelAskText(const char *title, const char *prompt, char *buf, int size)
     SetText(12, normal, &kText);
     a.promptLines = Wrapped(prompt, 0, 0, kAskW - 2 * kPad, 16, false);
     int fieldTop = kTitleH + a.promptLines * 16 + 8;
-    int h = fieldTop + kFieldH + 16 + kButtonH + kHintH;
+    int h = fieldTop + kFieldH + 16 + kButtonH + kPad;
     a.box = CenteredBox(kAskW, h);
     SetRect(&a.field, a.box.left + kPad, a.box.top + fieldTop, a.box.right - kPad, a.box.top + fieldTop + kFieldH);
     int by = a.field.bottom + 16;
@@ -442,10 +431,9 @@ void PanelMessageOpen(const char *text)
     Open();
     SetText(18, bold, &kWhite);
     int w = StringWidth(text) + 2 * kPad;
-    Rect box = CenteredBox(w < kMinW ? kMinW : w, 40 + kHintH);
+    Rect box = CenteredBox(w < kMinW ? kMinW : w, 56);
     Box(&box);
-    Centered(&box, text, box.top + 34);
-    DrawHint(&box, "click or press a key");
+    Centered(&box, text, box.top + 35);
 }
 
 void PanelMessageWait(void)
