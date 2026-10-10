@@ -83,17 +83,22 @@ static Boolean KeysDown(const KeyMap k, int a, int b) { return KeyDown(k, a) || 
 
 enum { kLeftArrow = 0x7B, kRightArrow = 0x7C, kDownArrow = 0x7D, kUpArrow = 0x7E,
        kKeyA = 0x00, kKeyS = 0x01, kKeyD = 0x02, kKeyW = 0x0D, kKeyQ = 0x0C,
-       kKeyI = 0x22, kKeyJ = 0x26, kKeyM = 0x2E, kSpace = 0x31, kReturn = 0x24, kEscape = 0x35 };
+       kKeyI = 0x22, kKeyJ = 0x26, kKeyM = 0x2E, kSpace = 0x31, kReturn = 0x24, kEscape = 0x35,
+       kEnter = 0x4C };
 
-/* The "click mouse or hit spacebar" wait that several screens share. */
+/* The "click mouse or hit spacebar" wait that several screens share.
+ * Esc is new; its keyDown is flushed so it doesn't then open the menu. */
 static void WaitForClickOrKey(void)
 {
     KeyMap keys;
     GetKeys(keys);
-    while (!Button() && !KeyDown(keys, kSpace) && !KeyDown(keys, kKeyQ) && !KeyDown(keys, kReturn)) {
+    while (!Button() && !KeyDown(keys, kSpace) && !KeyDown(keys, kKeyQ) && !KeyDown(keys, kReturn) &&
+           !KeyDown(keys, kEscape)) {
         GetKeys(keys);
         FlushEvents(everyEvent, 0);
     }
+    if (KeyDown(keys, kEscape))
+        FlushEvents(everyEvent, 0);
 }
 
 /* ------------------------------------------------------------------ */
@@ -219,7 +224,7 @@ static void InitLogoRegion(void)
  * this strip, so the hint survives them. */
 static void DrawTitleHint(void)
 {
-    static const char *hint = "press spacebar for menu";
+    static const char *hint = "press space, return or esc for menu";
     RGBColor c = {0xD8F0, 0, 0};
     RGBForeColor(&c);
     TextFont(1);
@@ -1644,6 +1649,7 @@ static void TitleMenu(void)
     static const PanelItem items[] = {
         {"New Game", kPanelAction, false, false},
         {"Start At Level...", kPanelAction, false, false},
+        {"Settings", kPanelAction, false, false},
         {"Instructions", kPanelAction, false, false},
         {"The Plot", kPanelAction, false, false},
     };
@@ -1651,11 +1657,12 @@ static void TitleMenu(void)
     PanelBegin();
     while (start == 0) {
         ShowCursorOnce();
-        switch (PanelChoose("Stardust", "Esc: close", items, 4, &sel)) {
+        switch (PanelChoose("Stardust", "Esc: close", items, 5, &sel)) {
         case 0: start = 1; break;
         case 1: start = AskForPassword(); break;
-        case 2: ShowInfoPicture(3); break;
-        case 3: ShowInfoPicture(1); break;
+        case 2: SettingsMenu(); break;
+        case 3: ShowInfoPicture(3); break;
+        case 4: ShowInfoPicture(1); break;
         default: start = -1; break;
         }
     }
@@ -1706,7 +1713,9 @@ static void GameMenu(void)
 static void KeyPressed(const EventRecord *ev)
 {
     int key = (int)(ev->message >> 8 & 0xFF);
-    if (ev->what == keyDown && (inGame ? key == kEscape : key == kSpace)) {
+    Boolean opens = inGame ? key == kEscape
+                           : key == kSpace || key == kReturn || key == kEnter || key == kEscape;
+    if (ev->what == keyDown && opens) {
         if (inGame)
             GameMenu();
         else

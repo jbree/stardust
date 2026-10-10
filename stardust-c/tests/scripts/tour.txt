@@ -5,6 +5,8 @@
 # the port's title menu: The Plot, Instructions, a rejected password
 port 8000 key Space down
 port 8060 key Space up
+port 8100 key Down down
+port 8160 key Down up
 port 8200 key Down down
 port 8260 key Down up
 port 8400 key Down down
@@ -23,6 +25,8 @@ port 20460 key Return up
 port 24000 shot /tmp/claude-sd/tour_instructions.bmp
 port 32000 key Space down
 port 32060 key Space up
+port 32100 key Up down
+port 32160 key Up up
 port 32200 key Up down
 port 32260 key Up up
 port 32400 key Return down

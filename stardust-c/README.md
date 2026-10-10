@@ -42,7 +42,8 @@ hold J+I+M.
 
 The original's menu bar (shown with Caps Lock) is replaced by panels:
 
-- **Space** on the title screen: New Game, Start At Level…, Instructions, The Plot.
+- **Space, Return or Esc** on the title screen: New Game, Start At Level…,
+  Settings, Instructions, The Plot.
 - **Esc** during a game pauses it: Abort Game, Reset Level, Settings,
   Instructions, The Plot. Esc again resumes.
 - **Settings**: Full / Partial / No Sound and Fast / Normal / Slow Animation,
@@ -51,6 +52,7 @@ The original's menu bar (shown with Caps Lock) is replaced by panels:
 Panels take arrows (or W/S), Return/Space/Enter to choose, Esc to go back, or
 the mouse. Passwords are upper-cased as you type. Instructions and The Plot close on
 any key or click, Esc included, without waiting for their music to finish.
+Esc also continues past the "Level N" screen, like a click or Space.
 
 ## Layout
 
@@ -113,8 +115,8 @@ exit and the victory sequence.
   now presented so it stays visible.
 - Fonts: Geneva TrueType for everything.
 - No menu bar or Caps Lock: the Space and Esc panels above replace the menus
-  and dialogs. The About box and Quit are gone (close the window to quit), and
-  Settings is reached from the in-game panel. The title screen shows "press
-  spacebar for menu" where the menu bar was.
+  and dialogs. The About box and Quit are gone (close the window to quit). The
+  title screen shows "press space, return or esc for menu" where the menu bar
+  was.
 - Always the 640×480 "full screen" mode; no small-screen window, no desk
   accessories.
