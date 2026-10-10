@@ -1,0 +1,44 @@
+# Builds the browser version and publishes it to GitHub Pages.
+name: Pages
+
+on:
+  push:
+    branches: [main, c-port]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.12  # what the port was developed with
+      - name: Build
+        working-directory: stardust-c
+        run: make web
+      - name: Collect site
+        run: |
+          mkdir -p _site
+          cp stardust-c/web/index.html stardust-c/web/stardust.js stardust-c/web/stardust.wasm stardust-c/web/stardust.data _site/
+          cp "original/Instructions:Read Me" "_site/Stardust Read Me.txt"
+      - uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

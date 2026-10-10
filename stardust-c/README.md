@@ -1,7 +1,8 @@
 # Stardust 1.1 — C port
 
-Stardust (1995, James Burton) was a THINK Pascal game for the classic Mac OS.
-This directory is a **routine-by-routine translation of its 68k code into C**,
+Stardust (© 1995 James Burton, who created all of it) was a THINK Pascal game
+for the classic Mac OS. This directory is an AI-generated (Claude)
+**routine-by-routine translation of its 68k code into C**,
 running on a small re-implementation of the Mac Toolbox over SDL2. It builds as a
 native program and, through Emscripten, for the browser.
 

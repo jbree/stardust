@@ -5,3 +5,4 @@
 /web/stardust.wasm
 /web/stardust.data
 /re/.venv/
+__pycache__/
